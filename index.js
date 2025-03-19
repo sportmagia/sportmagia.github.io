@@ -98,21 +98,50 @@ document.addEventListener('DOMContentLoaded', () => {
       let newX = logo.x + velocityX * deltaTime;
       let newY = logo.y + velocityY * deltaTime;
 
-      // Check for collision with edges and bounce
+      // Track if we hit horizontal and vertical bounds in this frame
+      let hitHorizontal = false;
+      let hitVertical = false;
+
+      // Store previous velocity to detect direction changes
+      const prevVelocityX = velocityX;
+      const prevVelocityY = velocityY;
+
+      // Check for collision with horizontal edges and bounce
       if (newX <= leftBound) {
         newX = leftBound;
         velocityX = Math.abs(velocityX); // Bounce right
+        hitHorizontal = prevVelocityX < 0; // Only count it if we were moving toward this edge
       } else if (newX >= rightBound) {
         newX = rightBound;
         velocityX = -Math.abs(velocityX); // Bounce left
+        hitHorizontal = prevVelocityX > 0; // Only count it if we were moving toward this edge
       }
 
+      // Check for collision with vertical edges and bounce
       if (newY <= topBound) {
         newY = topBound;
         velocityY = Math.abs(velocityY); // Bounce down
+        hitVertical = prevVelocityY < 0; // Only count it if we were moving toward this edge
       } else if (newY >= bottomBound) {
         newY = bottomBound;
         velocityY = -Math.abs(velocityY); // Bounce up
+        hitVertical = prevVelocityY > 0; // Only count it if we were moving toward this edge
+      }
+
+      // If we hit both horizontal and vertical bounds in the same frame, we hit a corner
+      if (hitHorizontal && hitVertical && !logo.isGlowing) {
+        // Determine which corner was hit
+        let cornerName = '';
+        if (newX <= leftBound && newY <= topBound) cornerName = 'top-left';
+        else if (newX >= rightBound && newY <= topBound)
+          cornerName = 'top-right';
+        else if (newX <= leftBound && newY >= bottomBound)
+          cornerName = 'bottom-left';
+        else if (newX >= rightBound && newY >= bottomBound)
+          cornerName = 'bottom-right';
+
+        console.log(`Hit ${cornerName} corner!`);
+        logo.startGlowEffect(5000); // Glow for 5 seconds when hitting a corner
       }
 
       // Update logo position
