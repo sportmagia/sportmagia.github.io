@@ -136,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   console.log(canvas.width, canvas.height);
 
+  //
   // Handle window resizing
   // window.addEventListener('resize', resizeCanvas);
 });
