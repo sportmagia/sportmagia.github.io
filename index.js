@@ -183,16 +183,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Function to resize canvas and redraw
   const resizeCanvas = () => {
-    // Get display size
-    const displayWidth = canvas.clientWidth;
-    const displayHeight = canvas.clientHeight;
+    // Get display size from the container (window size)
+    const displayWidth = window.innerWidth;
+    const displayHeight = window.innerHeight;
 
     // Calculate device pixel ratio for high-DPI displays
     const dpr = window.devicePixelRatio || 1;
 
-    // Set canvas size accounting for device pixel ratio
+    // Update canvas size to match window size (with proper DPI scaling)
     canvas.width = Math.floor(displayWidth * dpr);
     canvas.height = Math.floor(displayHeight * dpr);
+
+    // Reset context state since changing canvas dimensions resets the context
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     // Scale all drawing operations by the dpr
     ctx.scale(dpr, dpr);
@@ -210,6 +213,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Redraw scene after resize
     drawScene();
+
+    console.log(
+      `Canvas resized to ${displayWidth}x${displayHeight} (DPR: ${dpr})`
+    );
   };
 
   // Draw the complete scene
