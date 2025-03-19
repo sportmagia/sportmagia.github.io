@@ -77,9 +77,10 @@ document.addEventListener('DOMContentLoaded', () => {
     button.style.width = '30px';
     button.style.height = '30px';
     button.style.padding = '0';
-    button.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-    button.style.color = 'white';
-    button.style.border = '1px solid white';
+    button.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+    button.style.color = '#999';
+    button.style.border = 'none';
+    button.style.outline = 'none';
     button.style.borderRadius = '4px';
     button.style.cursor = 'pointer';
     button.style.zIndex = '1000';
@@ -87,7 +88,21 @@ document.addEventListener('DOMContentLoaded', () => {
     button.style.display = 'flex';
     button.style.alignItems = 'center';
     button.style.justifyContent = 'center';
+    button.style.filter = 'grayscale(100%)';
+    button.style.opacity = '0.7';
+    button.style.transition = 'opacity 0.2s ease-in-out';
     button.title = 'Toggle Debug Mode';
+
+    // Add hover effect for better UX
+    button.addEventListener('mouseenter', () => {
+      button.style.opacity = '1';
+      button.style.filter = 'grayscale(0)';
+    });
+
+    button.addEventListener('mouseleave', () => {
+      button.style.opacity = '0.3';
+      button.style.filter = 'grayscale(100%)';
+    });
 
     button.addEventListener('click', toggleDebugMode);
 
