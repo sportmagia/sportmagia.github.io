@@ -35,33 +35,67 @@ document.addEventListener('DOMContentLoaded', () => {
   // Animation state variables
   /** @type {number|null} */
   let animationFrameId = null;
-  let initialX = 0;
-  let initialY = 0;
   /** @type {number|null} */
-  let startTime = null;
-  const amplitude = 150; // Distance to move in pixels
-  const frequency = 3; // Seconds per complete cycle
+  let lastTimestamp = null;
+
+  // Motion state - 40 degree angle
+  const angle = 40 * (Math.PI / 180); // Convert 40 degrees to radians
+  const speed = 200; // Pixels per second
+
+  // Velocity components
+  let velocityX = Math.cos(angle) * speed;
+  let velocityY = Math.sin(angle) * speed;
 
   /**
-   * Animate the logo side to side continuously
+   * Animate the logo moving at an angle and bouncing off all edges
    * @param {number} timestamp - Current timestamp from requestAnimationFrame
    */
   const animateLogo = (timestamp) => {
-    // Initialize startTime on first frame
-    if (!startTime) startTime = timestamp;
-    const elapsed = (timestamp - startTime) / 1000; // Convert to seconds
+    // Calculate time delta
+    if (!lastTimestamp) lastTimestamp = timestamp;
+    const deltaTime = (timestamp - lastTimestamp) / 1000; // Convert to seconds
+    lastTimestamp = timestamp;
 
-    // Calculate new position using sine wave if not being dragged
     if (!logo.isDragging) {
-      const newX =
-        initialX + Math.sin((elapsed * (Math.PI * 2)) / frequency) * amplitude;
-      logo.setPosition(newX, initialY);
+      // Get the canvas bounds
+      const canvasWidth = canvas.width / window.devicePixelRatio;
+      const canvasHeight = canvas.height / window.devicePixelRatio;
+
+      // Calculate logo bounds
+      const logoHalfWidth = (logo.width * logo.scale) / 2;
+      const logoHalfHeight = (logo.height * logo.scale) / 2;
+
+      // Bounds for collision
+      const leftBound = logoHalfWidth;
+      const rightBound = canvasWidth - logoHalfWidth;
+      const topBound = logoHalfHeight;
+      const bottomBound = canvasHeight - logoHalfHeight;
+
+      // Calculate new position
+      let newX = logo.x + velocityX * deltaTime;
+      let newY = logo.y + velocityY * deltaTime;
+
+      // Check for collision with edges and bounce
+      if (newX <= leftBound) {
+        newX = leftBound;
+        velocityX = Math.abs(velocityX); // Bounce right
+      } else if (newX >= rightBound) {
+        newX = rightBound;
+        velocityX = -Math.abs(velocityX); // Bounce left
+      }
+
+      if (newY <= topBound) {
+        newY = topBound;
+        velocityY = Math.abs(velocityY); // Bounce down
+      } else if (newY >= bottomBound) {
+        newY = bottomBound;
+        velocityY = -Math.abs(velocityY); // Bounce up
+      }
+
+      // Update logo position
+      logo.setPosition(newX, newY);
     } else {
-      // If being dragged, update the center position for when dragging stops
-      initialX = logo.x;
-      initialY = logo.y;
-      // Reset animation timer to create smooth transition when drag ends
-      startTime = timestamp;
+      // If being dragged, we'll handle new velocity on drag end
     }
 
     // Redraw the scene
@@ -69,6 +103,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Continue animation loop
     animationFrameId = requestAnimationFrame(animateLogo);
+  };
+
+  /**
+   * Reset velocity after drag to maintain the 40-degree angle but in appropriate direction
+   */
+  const resetVelocityAfterDrag = () => {
+    // Get canvas dimensions
+    const canvasWidth = canvas.width / window.devicePixelRatio;
+    const canvasHeight = canvas.height / window.devicePixelRatio;
+
+    // Determine direction based on position in the canvas
+    const centerX = canvasWidth / 2;
+    const centerY = canvasHeight / 2;
+
+    // The x and y components of direction
+    const dirX = logo.x < centerX ? 1 : -1;
+    const dirY = logo.y < centerY ? 1 : -1;
+
+    // Set velocity at 40-degree angle in the correct direction
+    velocityX = dirX * Math.abs(Math.cos(angle) * speed);
+    velocityY = dirY * Math.abs(Math.sin(angle) * speed);
   };
 
   // Function to resize canvas and redraw
@@ -97,10 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Center the logo on the canvas
     logo.setPosition(displayWidth / 2, displayHeight / 2);
-
-    // Store the center position for animation
-    initialX = displayWidth / 2;
-    initialY = displayHeight / 2;
 
     // Redraw scene after resize
     drawScene();
@@ -149,11 +200,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   canvas.addEventListener('mouseup', () => {
-    // When drag ends, update the center position for animation
+    // When drag ends, reset velocity for proper 40-degree motion
     if (logo.isDragging) {
-      initialX = logo.x;
-      initialY = logo.y;
-      startTime = null; // Reset animation time for smooth transition
+      resetVelocityAfterDrag();
     }
     logo.stopDrag();
   });
