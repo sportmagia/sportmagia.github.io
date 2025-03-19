@@ -6,3 +6,141 @@ canvas {
   height: 100vh;
   background-color: black;
 }
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #000;
+}
+
+#logo {
+  position: absolute;
+  width: 20vw; /* Make logo width 20% of the viewport width */
+  min-width: 200px; /* Minimum width of 200px */
+  height: auto; /* Maintain aspect ratio */
+  animation: bounce 8s linear infinite;
+  will-change: transform, left, top; /* Performance optimization hint */
+  transform-origin: center;
+  transition: transform 0.3s ease-out; /* Add transition for smoother scaling */
+}
+
+/* Combined horizontal and vertical bounce animation */
+@keyframes bounce {
+  0% {
+    left: 0;
+    top: 0;
+  }
+  25% {
+    left: calc(100% - 20vw - 10px); /* Subtract logo width and a small offset */
+    top: 0;
+  }
+  50% {
+    left: calc(100% - 20vw - 10px);
+    top: calc(
+      100% - 20vw * 0.9 - 10px
+    ); /* Approximate height based on width + offset */
+  }
+  75% {
+    left: 0;
+    top: calc(100% - 20vw * 0.9 - 10px);
+  }
+  100% {
+    left: 0;
+    top: 0;
+  }
+}
+
+/* Optional: Add a glow effect when class is applied */
+#logo.glow {
+  filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.9))
+    drop-shadow(0 0 25px rgba(255, 140, 0, 0.6))
+    drop-shadow(0 0 35px rgba(255, 69, 0, 0.4));
+  transition: filter 0.3s ease-in-out, transform 0.3s ease-out;
+  animation-play-state: paused; /* Pause animation briefly for effect */
+  transform: scale(1.1); /* Slightly grow the logo */
+}
+
+/* Debug button - made more subtle */
+#debug-toggle {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background-color: rgba(0, 0, 0, 0.2);
+  color: #999;
+  border: none;
+  outline: none;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 1000;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: grayscale(100%);
+  opacity: 0.3;
+  transition: opacity 0.2s ease-in-out, filter 0.2s ease-in-out;
+}
+
+#debug-toggle:hover {
+  opacity: 1;
+  filter: grayscale(0);
+}
+
+/* Add a class for body when in debug mode */
+body.debug-mode #debug-toggle {
+  opacity: 0.8;
+  filter: grayscale(0);
+  background-color: rgba(50, 50, 200, 0.3);
+}
+
+/* Add a position indicator in debug mode */
+body.debug-mode::after {
+  content: attr(data-position);
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  z-index: 999;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  #logo {
+    width: 30vw; /* Larger percentage on smaller screens */
+  }
+
+  /* Adjust animation for smaller screens */
+  @keyframes bounce {
+    0% {
+      left: 0;
+      top: 0;
+    }
+    25% {
+      left: calc(100% - 30vw - 10px);
+      top: 0;
+    }
+    50% {
+      left: calc(100% - 30vw - 10px);
+      top: calc(100% - 30vw * 0.9 - 10px);
+    }
+    75% {
+      left: 0;
+      top: calc(100% - 30vw * 0.9 - 10px);
+    }
+    100% {
+      left: 0;
+      top: 0;
+    }
+  }
+}
