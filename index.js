@@ -25,6 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
+  // Debug mode - true by default on localhost, false otherwise
+  let isDebugMode =
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '';
+
   // FPS counter variables
   let frameCount = 0;
   let lastFpsUpdateTime = 0;
@@ -35,7 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const logo = new CanvasImage(
     'LOGO-SPORTMAGIA.svg', // Using SVG instead of PNG
     0, // Will be set properly in resizeCanvas
-    0 // Will be set properly in resizeCanvas
+    0, // Will be set properly in resizeCanvas
+    1.0, // Default scale
+    { relativeWidth: 0.2, minWidth: 200 } // Default options
   );
 
   // Animation state variables
@@ -52,6 +60,61 @@ document.addEventListener('DOMContentLoaded', () => {
   let velocityX = Math.cos(angle) * speed;
   let velocityY = Math.sin(angle) * speed;
 
+  // Reference to the glow button
+  /** @type {HTMLButtonElement|null} */
+  let glowButton = null;
+
+  /**
+   * Create debug toggle button
+   */
+  const addDebugButton = () => {
+    const button = document.createElement('button');
+    button.id = 'debug-toggle';
+    button.innerHTML = '🛠️'; // Wrench/tool emoji as debug icon
+    button.style.position = 'fixed';
+    button.style.top = '10px';
+    button.style.left = '10px';
+    button.style.width = '30px';
+    button.style.height = '30px';
+    button.style.padding = '0';
+    button.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    button.style.color = 'white';
+    button.style.border = '1px solid white';
+    button.style.borderRadius = '4px';
+    button.style.cursor = 'pointer';
+    button.style.zIndex = '1000';
+    button.style.fontSize = '16px';
+    button.style.display = 'flex';
+    button.style.alignItems = 'center';
+    button.style.justifyContent = 'center';
+    button.title = 'Toggle Debug Mode';
+
+    button.addEventListener('click', toggleDebugMode);
+
+    document.body.appendChild(button);
+  };
+
+  /**
+   * Toggle debug mode on/off
+   */
+  const toggleDebugMode = () => {
+    isDebugMode = !isDebugMode;
+    updateDebugElements();
+    console.log(`Debug mode: ${isDebugMode ? 'ON' : 'OFF'}`);
+  };
+
+  /**
+   * Update visibility of debug elements based on debug mode
+   */
+  const updateDebugElements = () => {
+    // Handle glow button visibility
+    if (glowButton) {
+      glowButton.style.display = isDebugMode ? 'block' : 'none';
+    }
+
+    // No need to update FPS visibility as it's handled in drawScene
+  };
+
   // Create glow button
   const addGlowButton = () => {
     const button = document.createElement('button');
@@ -67,12 +130,14 @@ document.addEventListener('DOMContentLoaded', () => {
     button.style.cursor = 'pointer';
     button.style.zIndex = '1000';
     button.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
+    button.style.display = isDebugMode ? 'block' : 'none'; // Initially based on debug mode
 
     button.addEventListener('click', () => {
       logo.startGlowEffect(5000); // Glow for 5000ms (5 seconds)
     });
 
     document.body.appendChild(button);
+    glowButton = button; // Store reference
   };
 
   /**
@@ -225,6 +290,9 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
+    // Update logo size based on canvas width (maintaining proportions)
+    logo.updateSize(displayWidth);
+
     // Center the logo on the canvas
     logo.setPosition(displayWidth / 2, displayHeight / 2);
 
@@ -232,7 +300,9 @@ document.addEventListener('DOMContentLoaded', () => {
     drawScene();
 
     console.log(
-      `Canvas resized to ${displayWidth}x${displayHeight} (DPR: ${dpr})`
+      `Canvas resized to ${displayWidth}x${displayHeight} (DPR: ${dpr}), Logo scale: ${logo.scale.toFixed(
+        2
+      )}`
     );
   };
 
@@ -249,8 +319,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Draw the logo
     logo.draw(ctx);
 
-    // Draw FPS counter
-    drawFpsCounter();
+    // Draw FPS counter if debug mode is enabled
+    if (isDebugMode) {
+      drawFpsCounter();
+    }
   };
 
   /**
@@ -293,8 +365,11 @@ document.addEventListener('DOMContentLoaded', () => {
   logo.setOnLoadCallback(() => {
     drawScene();
 
-    // Add the glow button -- for debugging only
-    // addGlowButton();
+    // Add debug button
+    addDebugButton();
+
+    // Add the glow button
+    addGlowButton();
 
     // Start the animation immediately after the logo is loaded
     animationFrameId = requestAnimationFrame(animateLogo);
@@ -353,16 +428,27 @@ class CanvasImage {
    * @param {number} x - Initial x position
    * @param {number} y - Initial y position
    * @param {number} [scale=1.0] - Initial scale
+   * @param {Object} [options={}] - Configuration options
+   * @param {number} [options.relativeWidth=0.2] - Width relative to canvas (0.0-1.0)
+   * @param {number} [options.minWidth=200] - Minimum width in pixels
    */
-  constructor(src, x, y, scale = 1.0) {
+  constructor(src, x, y, scale = 1.0, options = {}) {
     this.x = x;
     this.y = y;
     this.width = 0;
     this.height = 0;
     this.scale = scale;
+    this.naturalWidth = 0;
+    this.naturalHeight = 0;
+    this.aspectRatio = 1;
     this.isDragging = false;
     this.dragOffsetX = 0;
     this.dragOffsetY = 0;
+
+    // Size configuration
+    this.relativeWidth =
+      options.relativeWidth !== undefined ? options.relativeWidth : 0.2;
+    this.minWidth = options.minWidth !== undefined ? options.minWidth : 200;
 
     // Glow effect properties
     this.isGlowing = false;
@@ -379,12 +465,40 @@ class CanvasImage {
 
     // Set natural dimensions once loaded
     this.image.onload = () => {
-      this.width = this.image.naturalWidth;
-      this.height = this.image.naturalHeight;
+      this.naturalWidth = this.image.naturalWidth;
+      this.naturalHeight = this.image.naturalHeight;
+      this.aspectRatio = this.naturalWidth / this.naturalHeight;
+      this.width = this.naturalWidth;
+      this.height = this.naturalHeight;
       if (this.onLoadCallback) {
         this.onLoadCallback();
       }
     };
+  }
+
+  /**
+   * Update the image size based on canvas width
+   * @param {number} canvasWidth - Width of the canvas in pixels
+   * @returns {CanvasImage} - This instance for method chaining
+   */
+  updateSize(canvasWidth) {
+    // Calculate target width based on relative width (percentage of canvas)
+    let targetWidth = canvasWidth * this.relativeWidth;
+
+    // Ensure minimum width
+    targetWidth = Math.max(targetWidth, this.minWidth);
+
+    // Calculate scale factor based on natural dimensions
+    if (this.naturalWidth > 0) {
+      // Set scale to achieve target width
+      this.scale = targetWidth / this.naturalWidth;
+
+      // Update width and height
+      this.width = this.naturalWidth;
+      this.height = this.naturalHeight;
+    }
+
+    return this;
   }
 
   /**
@@ -440,7 +554,7 @@ class CanvasImage {
    * @returns {CanvasImage} - This instance for method chaining
    */
   draw(ctx) {
-    if (this.image.complete && this.width > 0) {
+    if (this.image.complete && this.naturalWidth > 0) {
       // Save current state
       ctx.save();
 
@@ -448,11 +562,17 @@ class CanvasImage {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
+      // Calculate scaled dimensions
+      const scaledWidth = this.naturalWidth * this.scale;
+      const scaledHeight = this.naturalHeight * this.scale;
+
       // Use subpixel positioning for smoother rendering
-      const x = Math.round(this.x - (this.width * this.scale) / 2) + 0.5;
-      const y = Math.round(this.y - (this.height * this.scale) / 2) + 0.5;
-      const width = Math.round(this.width * this.scale);
-      const height = Math.round(this.height * this.scale);
+      const x = Math.round(this.x - scaledWidth / 2) + 0.5;
+      const y = Math.round(this.y - scaledHeight / 2) + 0.5;
+
+      // Round scaled dimensions for pixel-perfect rendering
+      const width = Math.round(scaledWidth);
+      const height = Math.round(scaledHeight);
 
       // Draw glow effect if active
       if (this.isGlowing && this.glowIntensity > 0) {
@@ -531,8 +651,14 @@ class CanvasImage {
    * @returns {boolean} - Whether the point is inside the image
    */
   isPointInside(x, y) {
-    const halfWidth = (this.width * this.scale) / 2;
-    const halfHeight = (this.height * this.scale) / 2;
+    // Calculate scaled dimensions
+    const scaledWidth = this.naturalWidth * this.scale;
+    const scaledHeight = this.naturalHeight * this.scale;
+
+    // Use half the scaled dimensions for boundary calculations
+    const halfWidth = scaledWidth / 2;
+    const halfHeight = scaledHeight / 2;
+
     return (
       x >= this.x - halfWidth &&
       x <= this.x + halfWidth &&
