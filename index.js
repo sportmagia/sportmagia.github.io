@@ -1,5 +1,140 @@
 // @ts-check
 
+/**
+ * Class representing a draggable and scalable image on canvas
+ */
+class CanvasImage {
+  /**
+   * @param {string} src - Path to the image
+   * @param {number} x - Initial x position
+   * @param {number} y - Initial y position
+   * @param {number} [scale=1.0] - Initial scale
+   */
+  constructor(src, x, y, scale = 1.0) {
+    this.x = x;
+    this.y = y;
+    this.width = 0;
+    this.height = 0;
+    this.scale = scale;
+    this.isDragging = false;
+    this.dragOffsetX = 0;
+    this.dragOffsetY = 0;
+
+    // Create and load the image
+    this.image = new Image();
+    this.image.src = src;
+
+    // Set natural dimensions once loaded
+    this.image.onload = () => {
+      this.width = this.image.naturalWidth;
+      this.height = this.image.naturalHeight;
+      if (this.onLoadCallback) {
+        this.onLoadCallback();
+      }
+    };
+  }
+
+  /**
+   * Set callback for when image is loaded
+   * @param {Function} callback
+   */
+  setOnLoadCallback(callback) {
+    this.onLoadCallback = callback;
+    // If image is already loaded, call callback immediately
+    if (this.image.complete && this.width > 0) {
+      callback();
+    }
+  }
+
+  /**
+   * Check if a point is inside the image
+   * @param {number} x - The x coordinate to check
+   * @param {number} y - The y coordinate to check
+   * @returns {boolean} - Whether the point is inside the image
+   */
+  isPointInside(x, y) {
+    const halfWidth = (this.width * this.scale) / 2;
+    const halfHeight = (this.height * this.scale) / 2;
+    return (
+      x >= this.x - halfWidth &&
+      x <= this.x + halfWidth &&
+      y >= this.y - halfHeight &&
+      y <= this.y + halfHeight
+    );
+  }
+
+  /**
+   * Start dragging the image
+   * @param {number} mouseX - Mouse x position
+   * @param {number} mouseY - Mouse y position
+   */
+  startDrag(mouseX, mouseY) {
+    if (this.isPointInside(mouseX, mouseY)) {
+      this.isDragging = true;
+      this.dragOffsetX = mouseX - this.x;
+      this.dragOffsetY = mouseY - this.y;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Update position during drag
+   * @param {number} mouseX - Mouse x position
+   * @param {number} mouseY - Mouse y position
+   * @returns {boolean} - Whether the position was updated
+   */
+  drag(mouseX, mouseY) {
+    if (this.isDragging) {
+      this.x = mouseX - this.dragOffsetX;
+      this.y = mouseY - this.dragOffsetY;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Stop dragging
+   */
+  stopDrag() {
+    this.isDragging = false;
+  }
+
+  /**
+   * Adjust scale of the image
+   * @param {number} delta - Amount to adjust scale by
+   * @param {number} mouseX - Mouse x position for hit testing
+   * @param {number} mouseY - Mouse y position for hit testing
+   * @returns {boolean} - Whether scale was adjusted
+   */
+  adjustScale(delta, mouseX, mouseY) {
+    if (this.isPointInside(mouseX, mouseY)) {
+      // Adjust scale based on delta
+      this.scale += delta > 0 ? -0.1 : 0.1;
+      // Limit minimum and maximum scale
+      this.scale = Math.max(0.2, Math.min(3.0, this.scale));
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Draw the image on the canvas
+   * @param {CanvasRenderingContext2D} ctx - The canvas context to draw on
+   */
+  draw(ctx) {
+    if (this.image.complete && this.width > 0) {
+      ctx.drawImage(
+        this.image,
+        this.x - (this.width * this.scale) / 2,
+        this.y - (this.height * this.scale) / 2,
+        this.width * this.scale,
+        this.height * this.scale
+      );
+    }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   console.log('loaded');
 
@@ -26,66 +161,40 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
 
-    // Redraw after resize
-    // drawScene();
+    // Redraw scene after resize
+    drawScene();
   };
 
-  // Function to draw the scene
-  const drawScene1 = () => {
+  // Function to draw the scene background
+  const drawBackground = () => {
     ctx.fillStyle = 'red';
     ctx.fillRect(0, 0, canvas.width / 2, canvas.height / 2);
   };
 
-  // Initial resize
-  resizeCanvas();
+  // Create logo instance
+  const logo = new CanvasImage(
+    'sm-logo-fb-clean1.png',
+    canvas.width / 2,
+    canvas.height / 2
+  );
 
-  // Load the logo image
-  const logoImage = new Image();
-  logoImage.src = 'sm-logo-fb-clean1.png';
-
-  // Logo state for manipulation
-  const logo = {
-    x: canvas.width / 2,
-    y: canvas.height / 2,
-    width: 100,
-    height: 100,
-    isDragging: false,
-    dragOffsetX: 0,
-    dragOffsetY: 0,
-    scale: 1.0,
-  };
-
-  // Draw the scene with the logo
-  const drawSceneWithLogo = () => {
+  // Draw the complete scene
+  const drawScene = () => {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw background elements
-    drawScene1();
+    drawBackground();
 
-    // Draw the logo if image is loaded
-    if (logoImage.complete) {
-      ctx.drawImage(
-        logoImage,
-        logo.x - (logo.width * logo.scale) / 2,
-        logo.y - (logo.height * logo.scale) / 2,
-        logo.width * logo.scale,
-        logo.height * logo.scale
-      );
-    }
+    // Draw the logo
+    logo.draw(ctx);
   };
 
-  // Check if a point is inside the logo
-  const isPointInLogo = (x, y) => {
-    const halfWidth = (logo.width * logo.scale) / 2;
-    const halfHeight = (logo.height * logo.scale) / 2;
-    return (
-      x >= logo.x - halfWidth &&
-      x <= logo.x + halfWidth &&
-      y >= logo.y - halfHeight &&
-      y <= logo.y + halfHeight
-    );
-  };
+  // Set up callback for when logo is loaded
+  logo.setOnLoadCallback(drawScene);
+
+  // Initial resize
+  resizeCanvas();
 
   // Event listeners for logo manipulation
   canvas.addEventListener('mousedown', (e) => {
@@ -93,24 +202,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    if (isPointInLogo(mouseX, mouseY)) {
-      logo.isDragging = true;
-      logo.dragOffsetX = mouseX - logo.x;
-      logo.dragOffsetY = mouseY - logo.y;
+    if (logo.startDrag(mouseX, mouseY)) {
+      // No need to redraw here, will be handled in mousemove
     }
   });
 
   canvas.addEventListener('mousemove', (e) => {
-    if (logo.isDragging) {
-      const rect = canvas.getBoundingClientRect();
-      logo.x = e.clientX - rect.left - logo.dragOffsetX;
-      logo.y = e.clientY - rect.top - logo.dragOffsetY;
-      drawSceneWithLogo();
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    if (logo.drag(mouseX, mouseY)) {
+      drawScene();
     }
   });
 
   canvas.addEventListener('mouseup', () => {
-    logo.isDragging = false;
+    logo.stopDrag();
   });
 
   canvas.addEventListener('wheel', (e) => {
@@ -118,25 +226,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    if (isPointInLogo(mouseX, mouseY)) {
+    if (logo.adjustScale(e.deltaY, mouseX, mouseY)) {
       e.preventDefault();
-      // Adjust scale based on wheel direction
-      logo.scale += e.deltaY > 0 ? -0.1 : 0.1;
-      // Limit minimum and maximum scale
-      logo.scale = Math.max(0.2, Math.min(3.0, logo.scale));
-      drawSceneWithLogo();
+      drawScene();
     }
   });
 
-  // Wait for the image to load before initial draw
-  logoImage.onload = () => {
-    // Update the draw function to include the logo
-    drawSceneWithLogo();
-  };
-
   console.log(canvas.width, canvas.height);
 
-  //
   // Handle window resizing
   // window.addEventListener('resize', resizeCanvas);
 });
