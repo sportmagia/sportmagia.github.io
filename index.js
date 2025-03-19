@@ -1,140 +1,5 @@
 // @ts-check
 
-/**
- * Class representing a draggable and scalable image on canvas
- */
-class CanvasImage {
-  /**
-   * @param {string} src - Path to the image
-   * @param {number} x - Initial x position
-   * @param {number} y - Initial y position
-   * @param {number} [scale=1.0] - Initial scale
-   */
-  constructor(src, x, y, scale = 1.0) {
-    this.x = x;
-    this.y = y;
-    this.width = 0;
-    this.height = 0;
-    this.scale = scale;
-    this.isDragging = false;
-    this.dragOffsetX = 0;
-    this.dragOffsetY = 0;
-
-    // Create and load the image
-    this.image = new Image();
-    this.image.src = src;
-
-    // Set natural dimensions once loaded
-    this.image.onload = () => {
-      this.width = this.image.naturalWidth;
-      this.height = this.image.naturalHeight;
-      if (this.onLoadCallback) {
-        this.onLoadCallback();
-      }
-    };
-  }
-
-  /**
-   * Set callback for when image is loaded
-   * @param {Function} callback
-   */
-  setOnLoadCallback(callback) {
-    this.onLoadCallback = callback;
-    // If image is already loaded, call callback immediately
-    if (this.image.complete && this.width > 0) {
-      callback();
-    }
-  }
-
-  /**
-   * Check if a point is inside the image
-   * @param {number} x - The x coordinate to check
-   * @param {number} y - The y coordinate to check
-   * @returns {boolean} - Whether the point is inside the image
-   */
-  isPointInside(x, y) {
-    const halfWidth = (this.width * this.scale) / 2;
-    const halfHeight = (this.height * this.scale) / 2;
-    return (
-      x >= this.x - halfWidth &&
-      x <= this.x + halfWidth &&
-      y >= this.y - halfHeight &&
-      y <= this.y + halfHeight
-    );
-  }
-
-  /**
-   * Start dragging the image
-   * @param {number} mouseX - Mouse x position
-   * @param {number} mouseY - Mouse y position
-   */
-  startDrag(mouseX, mouseY) {
-    if (this.isPointInside(mouseX, mouseY)) {
-      this.isDragging = true;
-      this.dragOffsetX = mouseX - this.x;
-      this.dragOffsetY = mouseY - this.y;
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Update position during drag
-   * @param {number} mouseX - Mouse x position
-   * @param {number} mouseY - Mouse y position
-   * @returns {boolean} - Whether the position was updated
-   */
-  drag(mouseX, mouseY) {
-    if (this.isDragging) {
-      this.x = mouseX - this.dragOffsetX;
-      this.y = mouseY - this.dragOffsetY;
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Stop dragging
-   */
-  stopDrag() {
-    this.isDragging = false;
-  }
-
-  /**
-   * Adjust scale of the image
-   * @param {number} delta - Amount to adjust scale by
-   * @param {number} mouseX - Mouse x position for hit testing
-   * @param {number} mouseY - Mouse y position for hit testing
-   * @returns {boolean} - Whether scale was adjusted
-   */
-  adjustScale(delta, mouseX, mouseY) {
-    if (this.isPointInside(mouseX, mouseY)) {
-      // Adjust scale based on delta
-      this.scale += delta > 0 ? -0.1 : 0.1;
-      // Limit minimum and maximum scale
-      this.scale = Math.max(0.2, Math.min(3.0, this.scale));
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Draw the image on the canvas
-   * @param {CanvasRenderingContext2D} ctx - The canvas context to draw on
-   */
-  draw(ctx) {
-    if (this.image.complete && this.width > 0) {
-      ctx.drawImage(
-        this.image,
-        this.x - (this.width * this.scale) / 2,
-        this.y - (this.height * this.scale) / 2,
-        this.width * this.scale,
-        this.height * this.scale
-      );
-    }
-  }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   console.log('loaded');
 
@@ -148,43 +13,65 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  /** @type {CanvasRenderingContext2D|null} */
+  // Get the 2D context with better quality settings
   const ctx = canvas.getContext('2d');
+
   if (!ctx) {
     console.error('Could not get 2D context from canvas');
     return;
   }
 
+  // Enable high quality image smoothing
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  // Create logo instance - initial position will be updated in resizeCanvas
+  const logo = new CanvasImage(
+    'LOGO-SPORTMAGIA.svg', // Using SVG instead of PNG
+    0, // Will be set properly in resizeCanvas
+    0 // Will be set properly in resizeCanvas
+  );
+
   // Function to resize canvas and redraw
   const resizeCanvas = () => {
-    // Set canvas dimensions to match its CSS display size
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
+    // Get display size
+    const displayWidth = canvas.clientWidth;
+    const displayHeight = canvas.clientHeight;
+
+    // Calculate device pixel ratio for high-DPI displays
+    const dpr = window.devicePixelRatio || 1;
+
+    // Set canvas size accounting for device pixel ratio
+    canvas.width = Math.floor(displayWidth * dpr);
+    canvas.height = Math.floor(displayHeight * dpr);
+
+    // Scale all drawing operations by the dpr
+    ctx.scale(dpr, dpr);
+
+    // Set the CSS size of the canvas
+    canvas.style.width = `${displayWidth}px`;
+    canvas.style.height = `${displayHeight}px`;
+
+    // Reset image smoothing after resize
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    // Center the logo on the canvas
+    logo.setPosition(displayWidth / 2, displayHeight / 2);
 
     // Redraw scene after resize
     drawScene();
   };
 
-  // Function to draw the scene background
-  const drawBackground = () => {
-    ctx.fillStyle = 'red';
-    ctx.fillRect(0, 0, canvas.width / 2, canvas.height / 2);
-  };
-
-  // Create logo instance
-  const logo = new CanvasImage(
-    'sm-logo-fb-clean1.png',
-    canvas.width / 2,
-    canvas.height / 2
-  );
-
   // Draw the complete scene
   const drawScene = () => {
     // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw background elements
-    drawBackground();
+    ctx.clearRect(
+      0,
+      0,
+      canvas.width / window.devicePixelRatio,
+      canvas.height / window.devicePixelRatio
+    );
 
     // Draw the logo
     logo.draw(ctx);
@@ -235,5 +122,172 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log(canvas.width, canvas.height);
 
   // Handle window resizing
-  // window.addEventListener('resize', resizeCanvas);
+  window.addEventListener('resize', resizeCanvas);
 });
+
+/**
+ * Class representing a draggable and scalable image on canvas
+ */
+class CanvasImage {
+  /**
+   * @param {string} src - Path to the image
+   * @param {number} x - Initial x position
+   * @param {number} y - Initial y position
+   * @param {number} [scale=1.0] - Initial scale
+   */
+  constructor(src, x, y, scale = 1.0) {
+    this.x = x;
+    this.y = y;
+    this.width = 0;
+    this.height = 0;
+    this.scale = scale;
+    this.isDragging = false;
+    this.dragOffsetX = 0;
+    this.dragOffsetY = 0;
+
+    // Create and load the image
+    this.image = new Image();
+    // Set cross-origin to anonymous for potential CORS issues with SVGs
+    this.image.crossOrigin = 'anonymous';
+    this.image.src = src;
+
+    // Set natural dimensions once loaded
+    this.image.onload = () => {
+      this.width = this.image.naturalWidth;
+      this.height = this.image.naturalHeight;
+      if (this.onLoadCallback) {
+        this.onLoadCallback();
+      }
+    };
+  }
+
+  /**
+   * Draw the image on the canvas
+   * @param {CanvasRenderingContext2D} ctx - The canvas context to draw on
+   * @returns {CanvasImage} - This instance for method chaining
+   */
+  draw(ctx) {
+    if (this.image.complete && this.width > 0) {
+      // Save current state
+      ctx.save();
+
+      // Apply high quality transformations
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // Use subpixel positioning for smoother rendering
+      const x = Math.round(this.x - (this.width * this.scale) / 2) + 0.5;
+      const y = Math.round(this.y - (this.height * this.scale) / 2) + 0.5;
+      const width = Math.round(this.width * this.scale);
+      const height = Math.round(this.height * this.scale);
+
+      // Draw the image
+      ctx.drawImage(this.image, x, y, width, height);
+
+      // Restore previous state
+      ctx.restore();
+    }
+    return this;
+  }
+
+  /**
+   * Set the position of the image
+   * @param {number} x - The new x position
+   * @param {number} y - The new y position
+   * @returns {CanvasImage} - This instance for method chaining
+   */
+  setPosition(x, y) {
+    this.x = x;
+    this.y = y;
+    return this;
+  }
+
+  /**
+   * Set callback for when image is loaded
+   * @param {Function} callback
+   * @returns {CanvasImage} - This instance for method chaining
+   */
+  setOnLoadCallback(callback) {
+    this.onLoadCallback = callback;
+    // If image is already loaded, call callback immediately
+    if (this.image.complete && this.width > 0) {
+      callback();
+    }
+    return this;
+  }
+
+  /**
+   * Check if a point is inside the image
+   * @param {number} x - The x coordinate to check
+   * @param {number} y - The y coordinate to check
+   * @returns {boolean} - Whether the point is inside the image
+   */
+  isPointInside(x, y) {
+    const halfWidth = (this.width * this.scale) / 2;
+    const halfHeight = (this.height * this.scale) / 2;
+    return (
+      x >= this.x - halfWidth &&
+      x <= this.x + halfWidth &&
+      y >= this.y - halfHeight &&
+      y <= this.y + halfHeight
+    );
+  }
+
+  /**
+   * Start dragging the image
+   * @param {number} mouseX - Mouse x position
+   * @param {number} mouseY - Mouse y position
+   * @returns {boolean} - Whether dragging started
+   */
+  startDrag(mouseX, mouseY) {
+    if (this.isPointInside(mouseX, mouseY)) {
+      this.isDragging = true;
+      this.dragOffsetX = mouseX - this.x;
+      this.dragOffsetY = mouseY - this.y;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Update position during drag
+   * @param {number} mouseX - Mouse x position
+   * @param {number} mouseY - Mouse y position
+   * @returns {boolean} - Whether the position was updated
+   */
+  drag(mouseX, mouseY) {
+    if (this.isDragging) {
+      this.x = mouseX - this.dragOffsetX;
+      this.y = mouseY - this.dragOffsetY;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Stop dragging
+   * @returns {CanvasImage} - This instance for method chaining
+   */
+  stopDrag() {
+    this.isDragging = false;
+    return this;
+  }
+
+  /**
+   * Adjust scale of the image
+   * @param {number} delta - Amount to adjust scale by
+   * @param {number} mouseX - Mouse x position for hit testing
+   * @param {number} mouseY - Mouse y position for hit testing
+   * @returns {boolean} - Whether scale was adjusted
+   */
+  adjustScale(delta, mouseX, mouseY) {
+    if (this.isPointInside(mouseX, mouseY)) {
+      // Adjust scale based on delta
+      this.scale += delta > 0 ? -0.1 : 0.1;
+      // Limit minimum and maximum scale
+      this.scale = Math.max(0.2, Math.min(3.0, this.scale));
+      return true;
+    }
+    return false;
+  }
+}
