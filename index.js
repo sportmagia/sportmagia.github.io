@@ -166,9 +166,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const canvasWidth = canvas.width / window.devicePixelRatio;
       const canvasHeight = canvas.height / window.devicePixelRatio;
 
-      // Calculate logo bounds
-      const logoHalfWidth = (logo.width * logo.scale) / 2;
-      const logoHalfHeight = (logo.height * logo.scale) / 2;
+      // Calculate logo bounds with correct scaling
+      const scaledWidth = logo.naturalWidth * logo.scale;
+      const scaledHeight = logo.naturalHeight * logo.scale;
+      const logoHalfWidth = scaledWidth / 2;
+      const logoHalfHeight = scaledHeight / 2;
 
       // Bounds for collision
       const leftBound = logoHalfWidth;
@@ -463,13 +465,19 @@ class CanvasImage {
     this.image.crossOrigin = 'anonymous';
     this.image.src = src;
 
-    // Set natural dimensions once loaded
+    // Set natural dimensions once loaded and apply initial sizing
     this.image.onload = () => {
       this.naturalWidth = this.image.naturalWidth;
       this.naturalHeight = this.image.naturalHeight;
       this.aspectRatio = this.naturalWidth / this.naturalHeight;
       this.width = this.naturalWidth;
       this.height = this.naturalHeight;
+
+      // Apply initial sizing based on window size
+      if (window.innerWidth) {
+        this.updateSize(window.innerWidth);
+      }
+
       if (this.onLoadCallback) {
         this.onLoadCallback();
       }
@@ -717,10 +725,16 @@ class CanvasImage {
   adjustScale(delta, mouseX, mouseY) {
     if (this.isPointInside(mouseX, mouseY)) {
       // Adjust scale based on delta
-      this.scale += delta > 0 ? -0.1 : 0.1;
-      // Limit minimum and maximum scale
-      this.scale = Math.max(0.2, Math.min(3.0, this.scale));
-      return true;
+      const newScale = this.scale + (delta > 0 ? -0.1 : 0.1);
+
+      // Calculate the resulting width to check against minimum width
+      const resultingWidth = this.naturalWidth * newScale;
+
+      // Only apply if the resulting width is greater than minWidth and not too large
+      if (resultingWidth >= this.minWidth && newScale <= 3.0) {
+        this.scale = newScale;
+        return true;
+      }
     }
     return false;
   }
