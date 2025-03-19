@@ -25,6 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
+  // FPS counter variables
+  let frameCount = 0;
+  let lastFpsUpdateTime = 0;
+  let currentFps = 0;
+  const fpsUpdateInterval = 500; // Update FPS display every 500ms
+
   // Create logo instance - initial position will be updated in resizeCanvas
   const logo = new CanvasImage(
     'LOGO-SPORTMAGIA.svg', // Using SVG instead of PNG
@@ -78,6 +84,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!lastTimestamp) lastTimestamp = timestamp;
     const deltaTime = (timestamp - lastTimestamp) / 1000; // Convert to seconds
     lastTimestamp = timestamp;
+
+    // Update FPS counter
+    frameCount++;
+    if (timestamp - lastFpsUpdateTime >= fpsUpdateInterval) {
+      // Calculate FPS: frames / seconds
+      currentFps = Math.round(
+        (frameCount * 1000) / (timestamp - lastFpsUpdateTime)
+      );
+      frameCount = 0;
+      lastFpsUpdateTime = timestamp;
+    }
 
     if (!logo.isDragging) {
       // Get the canvas bounds
@@ -231,6 +248,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Draw the logo
     logo.draw(ctx);
+
+    // Draw FPS counter
+    drawFpsCounter();
+  };
+
+  /**
+   * Draw the FPS counter in the top-right corner
+   */
+  const drawFpsCounter = () => {
+    const padding = 10;
+    const displayWidth = canvas.width / window.devicePixelRatio;
+
+    ctx.save();
+
+    // Set font and style for FPS counter
+    ctx.font = '16px Arial';
+    ctx.fillStyle = 'lime';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+
+    // Draw FPS text with background for better visibility
+    const fpsText = `${currentFps} FPS`;
+    const textMetrics = ctx.measureText(fpsText);
+    const textHeight = 20; // Approximate height
+
+    // Draw semi-transparent background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(
+      displayWidth - textMetrics.width - padding * 2,
+      padding,
+      textMetrics.width + padding * 2,
+      textHeight + padding
+    );
+
+    // Draw text
+    ctx.fillStyle = 'lime';
+    ctx.fillText(fpsText, displayWidth - padding, padding);
+
+    ctx.restore();
   };
 
   // Set up callback for when logo is loaded
