@@ -230,8 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
   logo.setOnLoadCallback(() => {
     drawScene();
 
-    // Add the glow button
-    addGlowButton();
+    // Add the glow button -- for debugging only
+    // addGlowButton();
 
     // Start the animation immediately after the logo is loaded
     animationFrameId = requestAnimationFrame(animateLogo);
