@@ -32,6 +32,45 @@ document.addEventListener('DOMContentLoaded', () => {
     0 // Will be set properly in resizeCanvas
   );
 
+  // Animation state variables
+  /** @type {number|null} */
+  let animationFrameId = null;
+  let initialX = 0;
+  let initialY = 0;
+  /** @type {number|null} */
+  let startTime = null;
+  const amplitude = 150; // Distance to move in pixels
+  const frequency = 3; // Seconds per complete cycle
+
+  /**
+   * Animate the logo side to side continuously
+   * @param {number} timestamp - Current timestamp from requestAnimationFrame
+   */
+  const animateLogo = (timestamp) => {
+    // Initialize startTime on first frame
+    if (!startTime) startTime = timestamp;
+    const elapsed = (timestamp - startTime) / 1000; // Convert to seconds
+
+    // Calculate new position using sine wave if not being dragged
+    if (!logo.isDragging) {
+      const newX =
+        initialX + Math.sin((elapsed * (Math.PI * 2)) / frequency) * amplitude;
+      logo.setPosition(newX, initialY);
+    } else {
+      // If being dragged, update the center position for when dragging stops
+      initialX = logo.x;
+      initialY = logo.y;
+      // Reset animation timer to create smooth transition when drag ends
+      startTime = timestamp;
+    }
+
+    // Redraw the scene
+    drawScene();
+
+    // Continue animation loop
+    animationFrameId = requestAnimationFrame(animateLogo);
+  };
+
   // Function to resize canvas and redraw
   const resizeCanvas = () => {
     // Get display size
@@ -59,6 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Center the logo on the canvas
     logo.setPosition(displayWidth / 2, displayHeight / 2);
 
+    // Store the center position for animation
+    initialX = displayWidth / 2;
+    initialY = displayHeight / 2;
+
     // Redraw scene after resize
     drawScene();
   };
@@ -78,7 +121,12 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // Set up callback for when logo is loaded
-  logo.setOnLoadCallback(drawScene);
+  logo.setOnLoadCallback(() => {
+    drawScene();
+
+    // Start the animation immediately after the logo is loaded
+    animationFrameId = requestAnimationFrame(animateLogo);
+  });
 
   // Initial resize
   resizeCanvas();
@@ -89,9 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    if (logo.startDrag(mouseX, mouseY)) {
-      // No need to redraw here, will be handled in mousemove
-    }
+    logo.startDrag(mouseX, mouseY);
   });
 
   canvas.addEventListener('mousemove', (e) => {
@@ -99,12 +145,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    if (logo.drag(mouseX, mouseY)) {
-      drawScene();
-    }
+    logo.drag(mouseX, mouseY);
   });
 
   canvas.addEventListener('mouseup', () => {
+    // When drag ends, update the center position for animation
+    if (logo.isDragging) {
+      initialX = logo.x;
+      initialY = logo.y;
+      startTime = null; // Reset animation time for smooth transition
+    }
     logo.stopDrag();
   });
 
@@ -115,7 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (logo.adjustScale(e.deltaY, mouseX, mouseY)) {
       e.preventDefault();
-      drawScene();
     }
   });
 
