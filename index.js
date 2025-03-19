@@ -46,6 +46,29 @@ document.addEventListener('DOMContentLoaded', () => {
   let velocityX = Math.cos(angle) * speed;
   let velocityY = Math.sin(angle) * speed;
 
+  // Create glow button
+  const addGlowButton = () => {
+    const button = document.createElement('button');
+    button.textContent = 'Make Logo Glow';
+    button.style.position = 'fixed';
+    button.style.bottom = '20px';
+    button.style.left = '20px';
+    button.style.padding = '10px 20px';
+    button.style.backgroundColor = '#4CAF50';
+    button.style.color = 'white';
+    button.style.border = 'none';
+    button.style.borderRadius = '4px';
+    button.style.cursor = 'pointer';
+    button.style.zIndex = '1000';
+    button.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
+
+    button.addEventListener('click', () => {
+      logo.startGlowEffect(5000); // Glow for 5000ms (5 seconds)
+    });
+
+    document.body.appendChild(button);
+  };
+
   /**
    * Animate the logo moving at an angle and bouncing off all edges
    * @param {number} timestamp - Current timestamp from requestAnimationFrame
@@ -97,6 +120,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // If being dragged, we'll handle new velocity on drag end
     }
+
+    // Update glow effect if active
+    logo.updateGlowEffect(timestamp);
 
     // Redraw the scene
     drawScene();
@@ -175,6 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
   logo.setOnLoadCallback(() => {
     drawScene();
 
+    // Add the glow button
+    addGlowButton();
+
     // Start the animation immediately after the logo is loaded
     animationFrameId = requestAnimationFrame(animateLogo);
   });
@@ -243,6 +272,13 @@ class CanvasImage {
     this.dragOffsetX = 0;
     this.dragOffsetY = 0;
 
+    // Glow effect properties
+    this.isGlowing = false;
+    this.glowStartTime = 0;
+    this.glowDuration = 0;
+    this.glowIntensity = 0;
+    this.maxGlowIntensity = 30; // Maximum glow size in pixels
+
     // Create and load the image
     this.image = new Image();
     // Set cross-origin to anonymous for potential CORS issues with SVGs
@@ -257,6 +293,53 @@ class CanvasImage {
         this.onLoadCallback();
       }
     };
+  }
+
+  /**
+   * Start a glow effect that lasts for a specific duration
+   * @param {number} duration - Duration of the glow effect in milliseconds
+   * @returns {CanvasImage} - This instance for method chaining
+   */
+  startGlowEffect(duration = 5000) {
+    this.isGlowing = true;
+    this.glowStartTime = performance.now();
+    this.glowDuration = duration;
+    this.glowIntensity = this.maxGlowIntensity;
+    return this;
+  }
+
+  /**
+   * Update the glow effect based on elapsed time
+   * @param {number} currentTime - Current timestamp
+   * @returns {boolean} - Whether the glow effect is still active
+   */
+  updateGlowEffect(currentTime) {
+    if (!this.isGlowing) return false;
+
+    const elapsedTime = currentTime - this.glowStartTime;
+
+    // Check if the glow effect duration has expired
+    if (elapsedTime >= this.glowDuration) {
+      this.isGlowing = false;
+      this.glowIntensity = 0;
+      return false;
+    }
+
+    // Calculate glow intensity based on time
+    // Ramp up quickly, then slowly decrease
+    if (elapsedTime < 500) {
+      // Ramp up during first 500ms
+      this.glowIntensity = (elapsedTime / 500) * this.maxGlowIntensity;
+    } else if (elapsedTime > this.glowDuration - 1000) {
+      // Fade out during last 1000ms
+      const fadeProgress = (this.glowDuration - elapsedTime) / 1000;
+      this.glowIntensity = fadeProgress * this.maxGlowIntensity;
+    } else {
+      // Maximum glow intensity in the middle
+      this.glowIntensity = this.maxGlowIntensity;
+    }
+
+    return true;
   }
 
   /**
@@ -278,6 +361,41 @@ class CanvasImage {
       const y = Math.round(this.y - (this.height * this.scale) / 2) + 0.5;
       const width = Math.round(this.width * this.scale);
       const height = Math.round(this.height * this.scale);
+
+      // Draw glow effect if active
+      if (this.isGlowing && this.glowIntensity > 0) {
+        const glowSize = this.glowIntensity;
+        const glowX = x - glowSize;
+        const glowY = y - glowSize;
+        const glowWidth = width + glowSize * 2;
+        const glowHeight = height + glowSize * 2;
+
+        // Create radial gradient for glow
+        const gradient = ctx.createRadialGradient(
+          this.x,
+          this.y,
+          0,
+          this.x,
+          this.y,
+          Math.max(width, height) / 1.5 + glowSize
+        );
+
+        gradient.addColorStop(0, 'rgba(255, 215, 0, 0.9)'); // Gold center
+        gradient.addColorStop(0.7, 'rgba(255, 140, 0, 0.6)'); // Orange middle
+        gradient.addColorStop(1, 'rgba(255, 69, 0, 0)'); // Transparent outer
+
+        // Draw glow
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(
+          this.x,
+          this.y,
+          Math.max(width, height) / 1.5 + glowSize,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
 
       // Draw the image
       ctx.drawImage(this.image, x, y, width, height);
