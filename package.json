@@ -1,0 +1,16 @@
+{
+  "name": "sportmagia",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "live-server": "^1.2.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "dev": "live-server"
+  }
+}
