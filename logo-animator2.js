@@ -268,43 +268,59 @@ class LogoAnimator2 {
     const hitBottom = this.currentY + halfHeight >= this.rightEnd();
 
     // Handle wall collisions
-    if (hitLeft || hitRight) this.angle = Math.PI - this.angle;
-    if (hitTop || hitBottom) this.angle = -this.angle;
+    const MINIMUM_MOVEMENT = 1; // Minimum pixels to move to prevent getting stuck
+
+    // Handle corner hits first
+    if ((hitLeft || hitRight) && (hitTop || hitBottom)) {
+      // For corner hits, reverse both directions at once
+      this.angle = (this.angle + Math.PI) % (2 * Math.PI);
+      if (this.debugger) {
+        this.debugger.log(`Corner hit detected! Reversing direction`);
+      }
+      this.toggleGlow(2000);
+    } else if (hitLeft || hitRight) {
+      // Horizontal reflection
+      this.angle = Math.PI - this.angle;
+      // Ensure we move away from the wall
+      const dx = Math.cos(this.angle);
+      if ((hitLeft && dx < 0) || (hitRight && dx > 0)) {
+        this.angle = (this.angle + Math.PI) % (2 * Math.PI);
+      }
+    } else if (hitTop || hitBottom) {
+      // Vertical reflection
+      this.angle = -this.angle;
+      // Ensure we move away from the wall
+      const dy = Math.sin(this.angle);
+      if ((hitTop && dy < 0) || (hitBottom && dy > 0)) {
+        this.angle = (this.angle + Math.PI) % (2 * Math.PI);
+      }
+    }
+
+    // Normalize angle to [0, 2π)
     if (this.angle < 0) this.angle += 2 * Math.PI;
     this.angle %= 2 * Math.PI;
 
     const hit = hitLeft || hitRight || hitTop || hitBottom;
     if (hit) {
-      this.updateCSSVariables();
-      console.log({ hitLeft, hitRight, hitTop, hitBottom });
-    }
+      // Move slightly away from the wall to prevent sticking
+      const dx = Math.cos(this.angle) * MINIMUM_MOVEMENT;
+      const dy = Math.sin(this.angle) * MINIMUM_MOVEMENT;
+      this.currentX += dx;
+      this.currentY += dy;
 
-    // Handle corner hits
-    const hitCorner = (hitLeft || hitRight) && (hitTop || hitBottom);
-    if (hitCorner) {
+      this.updateCSSVariables();
       if (this.debugger) {
         this.debugger.log(
-          `Corner hit detected! ${hitLeft}-${hitRight}-${hitTop}-${hitBottom}`
+          `Collision handled - new angle: ${(
+            (this.angle * 180) /
+            Math.PI
+          ).toFixed(1)}°`
         );
       }
-      this.toggleGlow(2000);
     }
 
     // Debug logging
     if (this.debugger) {
-      if (hit) {
-        this.debugger.log(
-          `Collision detected: ${[
-            hitLeft && 'left',
-            hitRight && 'right',
-            hitTop && 'top',
-            hitBottom && 'bottom',
-          ]
-            .filter(Boolean)
-            .join(', ')}`
-        );
-      }
-
       // Convert normalized coordinates to window coordinates for debugging
       const windowPos = this.normalizedToWindow(this.currentX, this.currentY);
       const targetPos = this.normalizedToWindow(this.targetX(), this.targetY());
