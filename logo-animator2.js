@@ -99,10 +99,10 @@ class LogoAnimator2 {
     this.logoDimensions = {
       width: logoRect.width,
       height: logoRect.height,
-      leftBound: this.minX() + logoRect.width / 2,
-      rightBound: this.maxX() - logoRect.width / 2,
-      topBound: this.minY() + logoRect.height / 2,
-      bottomBound: this.maxY() - logoRect.height / 2,
+      leftBound: this.topEnd() + logoRect.width / 2,
+      rightBound: this.bottomEnd() - logoRect.width / 2,
+      topBound: this.leftEnd() + logoRect.height / 2,
+      bottomBound: this.rightEnd() - logoRect.height / 2,
     };
 
     if (this.debugger) {
@@ -126,14 +126,73 @@ class LogoAnimator2 {
     this.logo.style.top = '50vh';
   }
 
-  maxX = () => window.innerWidth / 2;
-  minX = () => -this.maxX();
-  maxY = () => window.innerHeight / 2;
-  minY = () => -this.maxY();
-  actualX = () => this.currentX + this.maxX();
-  actualY = () => this.currentY + this.maxY();
-  targetXX = () => this.actualX() + this.maxX() * Math.cos(this.angle);
-  targetYY = () => this.actualY() + this.maxY() * Math.sin(this.angle);
+  /**
+   * Convert window coordinates to normalized coordinates (0,0 at center)
+   * @param {number} x - Window X coordinate
+   * @param {number} y - Window Y coordinate
+   * @returns {{x: number, y: number}} Normalized coordinates
+   */
+  windowToNormalized(x, y) {
+    return {
+      x: x - window.innerWidth / 2,
+      y: y - window.innerHeight / 2,
+    };
+  }
+
+  /**
+   * Convert normalized coordinates to window coordinates
+   * @param {number} x - Normalized X coordinate
+   * @param {number} y - Normalized Y coordinate
+   * @returns {{x: number, y: number}} Window coordinates
+   */
+  normalizedToWindow(x, y) {
+    return {
+      x: x + window.innerWidth / 2,
+      y: y + window.innerHeight / 2,
+    };
+  }
+
+  bottomEnd = () => window.innerWidth / 2;
+  topEnd = () => -this.bottomEnd();
+  rightEnd = () => window.innerHeight / 2;
+  leftEnd = () => -this.rightEnd();
+
+  // Target positions in normalized coordinates
+  targetX = () => {
+    // Calculate how far we need to go to hit the border
+    const dx = Math.cos(this.angle);
+    const dy = Math.sin(this.angle);
+
+    // Find intersection with vertical borders
+    let tx = dx > 0 ? this.bottomEnd() : this.topEnd();
+    let ty = this.currentY + (dy * (tx - this.currentX)) / dx;
+
+    // If we hit horizontal borders first, recalculate
+    if (ty > this.rightEnd() || ty < this.leftEnd()) {
+      ty = dy > 0 ? this.rightEnd() : this.leftEnd();
+      tx = this.currentX + (dx * (ty - this.currentY)) / dy;
+    }
+
+    return tx;
+  };
+
+  targetY = () => {
+    // Calculate how far we need to go to hit the border
+    const dx = Math.cos(this.angle);
+    const dy = Math.sin(this.angle);
+
+    // Find intersection with vertical borders
+    let tx = dx > 0 ? this.bottomEnd() : this.topEnd();
+    let ty = this.currentY + (dy * (tx - this.currentX)) / dx;
+
+    // If we hit horizontal borders first, recalculate
+    if (ty > this.rightEnd() || ty < this.leftEnd()) {
+      ty = dy > 0 ? this.rightEnd() : this.leftEnd();
+      tx = this.currentX + (dx * (ty - this.currentY)) / dy;
+    }
+
+    return ty;
+  };
 
   /**
    * Update CSS variables for animation
@@ -141,25 +200,29 @@ class LogoAnimator2 {
    */
   updateCSSVariables() {
     this.logo.classList.remove('animate');
-    document.documentElement.style.setProperty(
-      '--start-x',
-      `${this.actualX()}px`
+
+    // Convert normalized coordinates to window coordinates for CSS
+    const startPos = this.normalizedToWindow(this.currentX, this.currentY);
+    const targetPos = this.normalizedToWindow(this.targetX(), this.targetY());
+    console.log(
+      { startPos, targetPos },
+      this.currentX,
+      this.currentY,
+      this.targetX(),
+      this.targetY()
     );
-    document.documentElement.style.setProperty(
-      '--start-y',
-      `${this.actualY()}px`
-    );
+
+    document.documentElement.style.setProperty('--start-x', `${startPos.x}px`);
+    document.documentElement.style.setProperty('--start-y', `${startPos.y}px`);
     document.documentElement.style.setProperty(
       '--target-x',
-      `${this.targetXX()}px`
+      `${targetPos.x}px`
     );
     document.documentElement.style.setProperty(
       '--target-y',
-      `${this.targetYY()}px`
+      `${targetPos.y}px`
     );
 
-    // -> triggering reflow /* The actual magic */
-    // without this it wouldn't work. Try uncommenting the line and the transition won't be retriggered.
     void this.logo.offsetWidth;
     this.logo.classList.add('animate');
   }
@@ -171,52 +234,49 @@ class LogoAnimator2 {
   mainLoop(timestamp) {
     if (!this.isAnimating) return;
 
-    // Calculate delta time in seconds
     const deltaTime = (timestamp - this.lastFrameTime) / 1000;
     this.lastFrameTime = timestamp;
 
-    // Get current position from computed style
+    // Get current position from computed style and convert to normalized coordinates
     const computedStyle = window.getComputedStyle(this.logo);
-    this.currentX =
-      parseFloat(computedStyle.left) - window.innerWidth / 2 || this.currentX;
-    this.currentY =
-      parseFloat(computedStyle.top) - window.innerHeight / 2 || this.currentY;
+    const windowX = parseFloat(computedStyle.left) || window.innerWidth / 2;
+    const windowY = parseFloat(computedStyle.top) || window.innerHeight / 2;
+    const normalized = this.windowToNormalized(windowX, windowY);
 
-    // Get logo center position
+    this.currentX = normalized.x;
+    this.currentY = normalized.y;
+
+    // Get logo center position in window coordinates for debugging
     const logoRect = this.logo.getBoundingClientRect();
     const centerX = logoRect.left + logoRect.width / 2;
     const centerY = logoRect.top + logoRect.height / 2;
 
-    // Check for collisions
+    // Check for collisions using normalized coordinates
     if (!this.logoDimensions) this.updateLogoDimensionsAndBounds();
 
     const dimensions = /** @type {LogoDimensions} */ (this.logoDimensions);
-    const { leftBound, rightBound, topBound, bottomBound } = dimensions;
+    const halfWidth = dimensions.width / 2;
+    const halfHeight = dimensions.height / 2;
 
-    // Detect wall hits
-    const hitLeft = this.currentX <= leftBound;
-    const hitRight = this.currentX >= rightBound;
-    const hitTop = this.currentY <= topBound;
-    const hitBottom = this.currentY >= bottomBound;
+    // Detect wall hits in normalized coordinates
+    const hitLeft = this.currentX - halfWidth <= this.topEnd();
+    const hitRight = this.currentX + halfWidth >= this.bottomEnd();
+    const hitTop = this.currentY - halfHeight <= this.leftEnd();
+    const hitBottom = this.currentY + halfHeight >= this.rightEnd();
 
     // Handle wall collisions
     if (hitLeft || hitRight) {
       this.velocityX = -this.velocityX;
-      console.log('angle', this.angle);
-      this.angle =
-        this.angle < Math.PI
-          ? Math.PI - this.angle
-          : this.angle < (3 / 2) * Math.PI
-          ? this.angle - Math.PI
-          : (3 / 2) * Math.PI - this.angle;
-
-      console.log('angle', this.angle, Math.sin(this.angle));
+      this.angle = Math.PI - this.angle;
+      if (this.angle < 0) this.angle += 2 * Math.PI;
     }
 
-    if (hitTop || hitBottom) this.angle = -this.angle;
+    if (hitTop || hitBottom) {
+      this.angle = -this.angle;
+      if (this.angle < 0) this.angle += 2 * Math.PI;
+    }
 
     const hit = hitLeft || hitRight || hitTop || hitBottom;
-    // Update CSS variables for animation
     if (hit) {
       this.updateCSSVariables();
       console.log({ hitLeft, hitRight, hitTop, hitBottom });
@@ -235,7 +295,7 @@ class LogoAnimator2 {
 
     // Debug logging
     if (this.debugger) {
-      if (hitLeft || hitRight || hitTop || hitBottom) {
+      if (hit) {
         this.debugger.log(
           `Collision detected: ${[
             hitLeft && 'left',
@@ -248,6 +308,10 @@ class LogoAnimator2 {
         );
       }
 
+      // Convert normalized coordinates to window coordinates for debugging
+      const windowPos = this.normalizedToWindow(this.currentX, this.currentY);
+      const targetPos = this.normalizedToWindow(this.targetX(), this.targetY());
+
       this.debugger.updatePosition({
         currentX: this.currentX,
         currentY: this.currentY,
@@ -255,11 +319,20 @@ class LogoAnimator2 {
         centerY,
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
-        timeLeft: 1.0, // Since we're using RAF, this is a placeholder value
+        timeLeft: 1.0,
+        actualX: windowPos.x,
+        actualY: windowPos.y,
+        targetX: targetPos.x,
+        targetY: targetPos.y,
+        maxX: this.bottomEnd(),
+        maxY: this.rightEnd(),
+        minX: this.topEnd(),
+        minY: this.leftEnd(),
+        angle: this.angle,
+        angleDegrees: (this.angle * 180) / Math.PI,
       });
     }
 
-    // Request next frame
     this.animationFrameId = requestAnimationFrame(this.mainLoop);
   }
 
