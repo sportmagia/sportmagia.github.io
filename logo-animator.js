@@ -3,6 +3,22 @@
 import LogoDebugger from './logo-debugger.js';
 
 /**
+ * @typedef {Object} LogoDimensions
+ * @property {number} width - Logo width
+ * @property {number} height - Logo height
+ * @property {number} leftBound - Left boundary for animation
+ * @property {number} rightBound - Right boundary for animation
+ * @property {number} topBound - Top boundary for animation
+ * @property {number} bottomBound - Bottom boundary for animation
+ */
+
+/**
+ * @typedef {Object} ViewportDimensions
+ * @property {number} width - Viewport width
+ * @property {number} height - Viewport height
+ */
+
+/**
  * Class to handle logo animation and related functionality
  */
 class LogoAnimator {
@@ -29,6 +45,12 @@ class LogoAnimator {
     this.speed = speed;
     this.velocityX = Math.cos(this.angle) * this.speed;
     this.velocityY = Math.sin(this.angle) * this.speed;
+
+    // Cached dimensions
+    /** @type {LogoDimensions|null} */
+    this.logoDimensions = null;
+    /** @type {ViewportDimensions|null} */
+    this.viewportDimensions = null;
 
     // Position tracking
     this.currentX = window.innerWidth / 2;
@@ -66,29 +88,72 @@ class LogoAnimator {
     this.handleResize = this.handleResize.bind(this);
   }
 
-  updateLogoDimensions() {
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const baseWidth = Math.max(viewportWidth * 0.2, 200);
+  /**
+   * Update cached viewport dimensions
+   * @private
+   */
+  updateViewportDimensions() {
+    this.viewportDimensions = {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    };
+  }
 
+  /**
+   * Update cached logo dimensions and boundaries
+   * @private
+   */
+  updateLogoDimensionsAndBounds() {
+    if (!this.viewportDimensions) {
+      this.updateViewportDimensions();
+    }
+
+    // After calling updateViewportDimensions, we can be sure viewportDimensions exists
+    const viewportDimensions = /** @type {ViewportDimensions} */ (
+      this.viewportDimensions
+    );
+
+    const logoRect = this.logo.getBoundingClientRect();
+    const logoWidth = logoRect.width;
+    const logoHeight = logoRect.height;
+
+    this.logoDimensions = {
+      width: logoWidth,
+      height: logoHeight,
+      leftBound: logoWidth / 2,
+      rightBound: viewportDimensions.width - logoWidth / 2,
+      topBound: logoHeight / 2,
+      bottomBound: viewportDimensions.height - logoHeight / 2,
+    };
+
+    if (this.debugger) {
+      this.debugger.updateDimensions({
+        width: logoWidth,
+        height: logoHeight,
+      });
+    }
+  }
+
+  updateLogoDimensions() {
+    this.updateViewportDimensions();
+    // After calling updateViewportDimensions, we can be sure viewportDimensions exists
+    const viewportDimensions = /** @type {ViewportDimensions} */ (
+      this.viewportDimensions
+    );
+    const baseWidth = Math.max(viewportDimensions.width * 0.2, 200);
     this.logo.style.width = `${baseWidth}px`;
 
     clearTimeout(this.logoLoadTimeout);
 
     this.logoLoadTimeout = setTimeout(() => {
-      const logoRect = this.logo.getBoundingClientRect();
-      const logoWidth = logoRect.width;
-      const logoHeight = logoRect.height;
+      this.updateLogoDimensionsAndBounds();
 
-      if (this.debugger) {
-        this.debugger.updateDimensions({
-          width: logoWidth,
-          height: logoHeight,
-        });
-      }
-
-      this.currentX = viewportWidth / 2;
-      this.currentY = viewportHeight / 2;
+      // Center the logo initially
+      const dimensions = /** @type {ViewportDimensions} */ (
+        this.viewportDimensions
+      );
+      this.currentX = dimensions.width / 2;
+      this.currentY = dimensions.height / 2;
 
       document.documentElement.style.setProperty(
         '--start-x',
@@ -114,11 +179,12 @@ class LogoAnimator {
   }
 
   calculateNextPosition() {
-    const logoRect = this.logo.getBoundingClientRect();
-    const logoWidth = logoRect.width;
-    const logoHeight = logoRect.height;
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    if (!this.logoDimensions || !this.viewportDimensions) {
+      this.updateLogoDimensionsAndBounds();
+    }
+
+    // After calling updateLogoDimensionsAndBounds, we can be sure logoDimensions exists
+    const dimensions = /** @type {LogoDimensions} */ (this.logoDimensions);
 
     const actualPosition = {
       x: parseFloat(window.getComputedStyle(this.logo).left) || this.currentX,
@@ -131,10 +197,7 @@ class LogoAnimator {
     let nextX = this.currentX + this.velocityX / 60;
     let nextY = this.currentY + this.velocityY / 60;
 
-    const leftBound = logoWidth / 2;
-    const rightBound = viewportWidth - logoWidth / 2;
-    const topBound = logoHeight / 2;
-    const bottomBound = viewportHeight - logoHeight / 2;
+    const { leftBound, rightBound, topBound, bottomBound } = dimensions;
 
     const hitLeft = nextX <= leftBound;
     const hitRight = nextX >= rightBound;
