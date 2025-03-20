@@ -54,6 +54,7 @@ body {
 /* Logo in motion state - JS will add this class */
 #logo.in-motion {
   animation: move-to-target var(--animation-duration) linear forwards;
+  animation-play-state: running !important; /* Ensure animation runs */
 }
 
 /* Linear movement towards target position */

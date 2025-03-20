@@ -157,6 +157,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
+    // Use the actual current position from the DOM element
+    // This prevents any position drift that might occur
+    const actualPosition = {
+      x: parseFloat(window.getComputedStyle(logo).left) || currentX,
+      y: parseFloat(window.getComputedStyle(logo).top) || currentY,
+    };
+
+    // Update our tracking variables to match reality
+    currentX = actualPosition.x;
+    currentY = actualPosition.y;
+
     // Calculate collision bounds (where the center point can go)
     const halfWidth = logoWidth / 2;
     const halfHeight = logoHeight / 2;
@@ -247,10 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
       `${duration.toFixed(2)}s`
     );
 
-    // Start the animation
-    animationInProgress = true;
-    logo.classList.add('in-motion');
-
     // Update current position for next calculation
     currentX = nextX;
     currentY = nextY;
@@ -258,19 +265,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // Calculate when this animation will end
     animationEndTime = Date.now() + duration * 1000;
 
+    // Start the animation
+    animationInProgress = true;
+
+    // Immediate animation restart technique
+    requestAnimationFrame(() => {
+      // Set explicit position to ensure starting point
+      logo.style.left =
+        document.documentElement.style.getPropertyValue('--start-x');
+      logo.style.top =
+        document.documentElement.style.getPropertyValue('--start-y');
+
+      // Temporarily disable animation
+      logo.style.animation = 'none';
+
+      // Force reflow
+      void logo.offsetWidth;
+
+      // Remove explicit animation style
+      logo.style.animation = '';
+
+      // Apply animation class
+      logo.classList.add('in-motion');
+    });
+
     // Set up the next animation segment
     setTimeout(() => {
+      // Set the exact position at the end of the animation to ensure seamless transition
+      logo.style.left = `${nextX}px`;
+      logo.style.top = `${nextY}px`;
+
       // Remove the animation class
       logo.classList.remove('in-motion');
 
-      // Force a reflow to ensure CSS animation restarts
-      void logo.offsetWidth;
-
-      // Calculate and start the next animation segment
+      // Schedule the next segment after a very short delay
       setTimeout(() => {
         animationInProgress = false;
         calculateNextPosition();
-      }, 50);
+      }, 16); // 1 frame at 60fps
     }, duration * 1000);
 
     if (isDebugMode) {
