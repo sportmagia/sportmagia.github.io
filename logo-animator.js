@@ -20,7 +20,7 @@ import LogoDebugger from './logo-debugger.js';
 /**
  * Class to handle logo animation and related functionality using requestAnimationFrame
  */
-class LogoAnimator2 {
+class LogoAnimator {
   /**
    * @param {string} logoId - The ID of the logo element
    * @param {Object} options - Configuration options
@@ -503,4 +503,4 @@ class LogoAnimator2 {
   }
 }
 
-export default LogoAnimator2;
+export default LogoAnimator;
