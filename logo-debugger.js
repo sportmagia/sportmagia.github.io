@@ -83,25 +83,29 @@ class LogoDebugger {
    * @param {Object} state - Current animation state
    * @param {number} state.currentX - Current X position
    * @param {number} state.currentY - Current Y position
-   * @param {number} state.animationEndTime - Animation end timestamp
+   * @param {number} state.centerX - Center X position of logo
+   * @param {number} state.centerY - Center Y position of logo
+   * @param {number} state.viewportWidth - Current viewport width
+   * @param {number} state.viewportHeight - Current viewport height
+   * @param {number} state.timeLeft - Time left in animation
    */
   updatePosition(state) {
     if (!this.isDebugMode) return;
 
-    const logoRect = this.logo.getBoundingClientRect();
-    const centerX = logoRect.left + logoRect.width / 2;
-    const centerY = logoRect.top + logoRect.height / 2;
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    const timeLeft = Math.max(0, (state.animationEndTime - Date.now()) / 1000);
+    const {
+      currentX,
+      currentY,
+      centerX,
+      centerY,
+      viewportWidth,
+      viewportHeight,
+      timeLeft,
+    } = state;
 
     this.body.setAttribute(
       'data-position',
       `Pos: ${centerX.toFixed(0)}x${centerY.toFixed(0)} ` +
-        `Target: [${state.currentX.toFixed(0)}, ${state.currentY.toFixed(
-          0
-        )}] ` +
+        `Target: [${currentX.toFixed(0)}, ${currentY.toFixed(0)}] ` +
         `Time: ${timeLeft.toFixed(1)}s`
     );
 
@@ -113,25 +117,22 @@ class LogoDebugger {
 
   /**
    * Update logo dimensions debug info
-   * @param {Object} dimensions - Logo dimensions
-   * @param {number} dimensions.width - Logo width
-   * @param {number} dimensions.height - Logo height
+   * @param {Object} state - Current state
+   * @param {number} state.width - Logo width
+   * @param {number} state.height - Logo height
+   * @param {number} state.viewportWidth - Current viewport width
+   * @param {number} state.viewportHeight - Current viewport height
    */
-  updateDimensions(dimensions) {
+  updateDimensions(state) {
     if (!this.isDebugMode) return;
 
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    const { width, height, viewportWidth, viewportHeight } = state;
 
-    this.log(
-      `Logo dimensions: ${dimensions.width.toFixed(
-        1
-      )} x ${dimensions.height.toFixed(1)}px`
-    );
+    this.log(`Logo dimensions: ${width.toFixed(1)} x ${height.toFixed(1)}px`);
 
     this.body.setAttribute(
       'data-logo-size',
-      `${dimensions.width.toFixed(0)} x ${dimensions.height.toFixed(0)}px`
+      `${width.toFixed(0)} x ${height.toFixed(0)}px`
     );
 
     this.body.setAttribute(

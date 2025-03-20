@@ -109,6 +109,8 @@ class LogoAnimator2 {
       this.debugger.updateDimensions({
         width: logoRect.width,
         height: logoRect.height,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
       });
     }
   }
@@ -180,6 +182,11 @@ class LogoAnimator2 {
     this.currentY =
       parseFloat(computedStyle.top) - window.innerHeight / 2 || this.currentY;
 
+    // Get logo center position
+    const logoRect = this.logo.getBoundingClientRect();
+    const centerX = logoRect.left + logoRect.width / 2;
+    const centerY = logoRect.top + logoRect.height / 2;
+
     // Check for collisions
     if (!this.logoDimensions) this.updateLogoDimensionsAndBounds();
 
@@ -244,7 +251,11 @@ class LogoAnimator2 {
       this.debugger.updatePosition({
         currentX: this.currentX,
         currentY: this.currentY,
-        animationEndTime: Date.now() + 1000, // Not really used in RAF version
+        centerX,
+        centerY,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        timeLeft: 1.0, // Since we're using RAF, this is a placeholder value
       });
     }
 
