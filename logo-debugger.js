@@ -68,7 +68,7 @@ class LogoDebugger {
     panel.style.cssText = `
       position: fixed;
       top: 10px;
-      right: 60px;
+      right: 10px;
       background: rgba(0, 0, 0, 0.8);
       color: #00ff00;
       padding: 10px;
@@ -77,7 +77,7 @@ class LogoDebugger {
       border-radius: 4px;
       z-index: 9999;
       display: none;
-      min-width: 300px;
+      min-width: 200px;
     `;
 
     // Create sections for different debug info
@@ -155,7 +155,7 @@ class LogoDebugger {
     button.style.cssText = `
       position: fixed;
       top: 10px;
-      right: 10px;
+      left: 10px;
       z-index: 10000;
       padding: 8px;
       background: rgba(0, 0, 0, 0.8);
@@ -163,6 +163,15 @@ class LogoDebugger {
       border: 1px solid #00ff00;
       border-radius: 4px;
       cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      opacity: 0.7;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     `;
     button.title = 'Toggle Debug Mode';
 

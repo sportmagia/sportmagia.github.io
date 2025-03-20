@@ -5,7 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const isLocalhost =
     window.location.hostname === 'localhost' ||
     window.location.hostname === '127.0.0.1' ||
-    window.location.hostname === '';
+    window.location.hostname === '' ||
+    window.location.hostname.endsWith('.loca.lt');
 
   const logo1 = new LogoAnimator('logo1', {
     angle: -40,
