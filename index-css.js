@@ -96,25 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `${logoHeight}`
       );
 
-      // Calculate bounce positions
-      const maxX = viewportWidth - logoWidth;
-      const maxY = viewportHeight - logoHeight;
-
-      document.documentElement.style.setProperty('--max-x', `${maxX}px`);
-      document.documentElement.style.setProperty('--max-y', `${maxY}px`);
-
-      // Update CSS variables with translation offsets for corner detection
-      // Since the logo is centered with translate(-50%, -50%), the effective
-      // position is offset by half the logo's dimensions
-      document.documentElement.style.setProperty(
-        '--translate-x',
-        `${logoWidth / 2}px`
-      );
-      document.documentElement.style.setProperty(
-        '--translate-y',
-        `${logoHeight / 2}px`
-      );
-
       // Update debug data attributes
       body.setAttribute(
         'data-logo-size',
