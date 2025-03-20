@@ -11,18 +11,15 @@
   --max-x: calc(100vw - var(--logo-width));
   --max-y: calc(100vh - var(--logo-height));
 
-  /* Pre-calculated corner positions (including translation offset) */
-  --top-left-x: var(--translate-x);
-  --top-left-y: var(--translate-y);
+  /* Physics animation settings */
+  --angle-deg: 40; /* 40 degree angle for movement */
+  --animation-duration: 2s; /* Duration for each segment */
 
-  --top-right-x: calc(var(--max-x) + var(--translate-x));
-  --top-right-y: var(--translate-y);
-
-  --bottom-right-x: calc(var(--max-x) + var(--translate-x));
-  --bottom-right-y: calc(var(--max-y) + var(--translate-y));
-
-  --bottom-left-x: var(--translate-x);
-  --bottom-left-y: calc(var(--max-y) + var(--translate-y));
+  /* Current and target positions - will be updated by JS */
+  --start-x: 50vw; /* Start at center */
+  --start-y: 50vh;
+  --target-x: calc(var(--max-x) * 0.8);
+  --target-y: calc(var(--max-y) * 0.3);
 }
 
 canvas {
@@ -46,33 +43,28 @@ body {
 #logo {
   position: absolute;
   height: auto; /* Maintain aspect ratio */
-  animation: bounce 8s linear infinite;
   will-change: transform, left, top; /* Performance optimization hint */
   transform-origin: center;
-  transition: transform 0.3s ease-out; /* Add transition for smoother scaling */
+  transform: translate(-50%, -50%); /* Center the logo on its position */
+  left: var(--start-x);
+  top: var(--start-y);
+  transition: transform 0.3s ease-out; /* For glow effect scaling */
 }
 
-/* Combined horizontal and vertical bounce animation using CSS variables */
-@keyframes bounce {
-  0% {
-    left: var(--top-left-x);
-    top: var(--top-left-y);
+/* Logo in motion state - JS will add this class */
+#logo.in-motion {
+  animation: move-to-target var(--animation-duration) linear forwards;
+}
+
+/* Linear movement towards target position */
+@keyframes move-to-target {
+  from {
+    left: var(--start-x);
+    top: var(--start-y);
   }
-  25% {
-    left: var(--top-right-x);
-    top: var(--top-right-y);
-  }
-  50% {
-    left: var(--bottom-right-x);
-    top: var(--bottom-right-y);
-  }
-  75% {
-    left: var(--bottom-left-x);
-    top: var(--bottom-left-y);
-  }
-  100% {
-    left: var(--top-left-x);
-    top: var(--top-left-y);
+  to {
+    left: var(--target-x);
+    top: var(--target-y);
   }
 }
 
@@ -82,8 +74,7 @@ body {
     drop-shadow(0 0 25px rgba(255, 140, 0, 0.6))
     drop-shadow(0 0 35px rgba(255, 69, 0, 0.4));
   transition: filter 0.3s ease-in-out, transform 0.3s ease-out;
-  animation-play-state: paused; /* Pause animation briefly for effect */
-  transform: scale(1.1); /* Slightly grow the logo */
+  transform: translate(-50%, -50%) scale(1.1); /* Slightly grow the logo while maintaining centering */
 }
 
 /* Debug button - made more subtle */

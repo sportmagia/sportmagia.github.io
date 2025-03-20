@@ -35,6 +35,22 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.hostname === '';
   let isDebugMode = isLocalhost; // Enable debug by default on localhost
 
+  // Physics settings
+  const angle = 40 * (Math.PI / 180); // 40 degrees in radians
+  const speed = 200; // Pixels per second - this controls animation duration
+
+  // Velocity components
+  let velocityX = Math.cos(angle) * speed;
+  let velocityY = Math.sin(angle) * speed;
+
+  // Current position tracking
+  let currentX = window.innerWidth / 2; // Center X
+  let currentY = window.innerHeight / 2; // Center Y
+
+  // Animation state
+  let animationInProgress = false;
+  let animationEndTime = 0;
+
   // Update visibility of debug elements
   const updateDebugElements = () => {
     body.classList.toggle('debug-mode', isDebugMode);
@@ -96,27 +112,180 @@ document.addEventListener('DOMContentLoaded', () => {
         `${logoHeight}`
       );
 
+      // Calculate bounce positions
+      const maxX = viewportWidth - logoWidth;
+      const maxY = viewportHeight - logoHeight;
+
+      document.documentElement.style.setProperty('--max-x', `${maxX}px`);
+      document.documentElement.style.setProperty('--max-y', `${maxY}px`);
+
+      // Update CSS variables with translation offsets for corner detection
+      // Since the logo is centered with translate(-50%, -50%), the effective
+      // position is offset by half the logo's dimensions
+      document.documentElement.style.setProperty(
+        '--translate-x',
+        `${logoWidth / 2}px`
+      );
+      document.documentElement.style.setProperty(
+        '--translate-y',
+        `${logoHeight / 2}px`
+      );
+
       // Update debug data attributes
       body.setAttribute(
         'data-logo-size',
         `${logoWidth.toFixed(0)} x ${logoHeight.toFixed(0)}px`
       );
 
-      // If animation was in progress, restart it to apply new dimensions
-      if (logo.style.animationPlayState !== 'paused') {
-        logo.style.animation = 'none';
-        // Force reflow
-        void logo.offsetWidth;
-        logo.style.animation = 'bounce 8s linear infinite';
+      // We'll start the animation from the center
+      currentX = viewportWidth / 2;
+      currentY = viewportHeight / 2;
+
+      // Start the animation
+      if (!animationInProgress) {
+        calculateNextPosition();
       }
     }, 100); // Small delay to ensure image is rendered
+  };
+
+  // Calculate the next target position based on current position and velocity
+  const calculateNextPosition = () => {
+    // Get current dimensions
+    const logoRect = logo.getBoundingClientRect();
+    const logoWidth = logoRect.width;
+    const logoHeight = logoRect.height;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Calculate collision bounds (where the center point can go)
+    const halfWidth = logoWidth / 2;
+    const halfHeight = logoHeight / 2;
+    const leftBound = halfWidth;
+    const rightBound = viewportWidth - halfWidth;
+    const topBound = halfHeight;
+    const bottomBound = viewportHeight - halfHeight;
+
+    // Calculate the time it would take to hit each wall
+    // Assuming the logo continues in the current direction
+    let timeToHitX = Infinity;
+    let timeToHitY = Infinity;
+    let hitXWall = '';
+    let hitYWall = '';
+
+    if (velocityX > 0) {
+      // Moving right
+      timeToHitX = (rightBound - currentX) / velocityX;
+      hitXWall = 'right';
+    } else if (velocityX < 0) {
+      // Moving left
+      timeToHitX = (leftBound - currentX) / velocityX;
+      hitXWall = 'left';
+    }
+
+    if (velocityY > 0) {
+      // Moving down
+      timeToHitY = (bottomBound - currentY) / velocityY;
+      hitYWall = 'bottom';
+    } else if (velocityY < 0) {
+      // Moving up
+      timeToHitY = (topBound - currentY) / velocityY;
+      hitYWall = 'top';
+    }
+
+    // Determine which wall will be hit first
+    const timeToHit = Math.min(timeToHitX, timeToHitY);
+
+    // Calculate the position where the logo will hit the wall
+    let nextX = currentX + velocityX * timeToHit;
+    let nextY = currentY + velocityY * timeToHit;
+
+    // Ensure we don't go out of bounds
+    nextX = Math.max(leftBound, Math.min(rightBound, nextX));
+    nextY = Math.max(topBound, Math.min(bottomBound, nextY));
+
+    // Determine which wall we'll hit
+    const hitWallX = timeToHitX <= timeToHitY && !!hitXWall;
+    const hitWallY = timeToHitY <= timeToHitX && !!hitYWall;
+
+    // Check if we're hitting a corner (both walls at the same time)
+    const hitCorner =
+      Math.abs(timeToHitX - timeToHitY) < 0.1 && !!hitXWall && !!hitYWall;
+
+    if (hitCorner) {
+      if (isDebugMode) {
+        console.log(`Corner hit detected! ${hitXWall}-${hitYWall}`);
+      }
+      // Trigger glow effect for corner collisions
+      toggleGlow(2000);
+    } else if (isDebugMode && (hitWallX || hitWallY)) {
+      console.log(`Wall hit detected: ${hitWallX ? hitXWall : hitYWall}`);
+    }
+
+    // Update velocity for the next segment
+    if (hitWallX || hitCorner) {
+      velocityX = -velocityX; // Reverse x direction
+    }
+
+    if (hitWallY || hitCorner) {
+      velocityY = -velocityY; // Reverse y direction
+    }
+
+    // Update CSS variables for the animation
+    document.documentElement.style.setProperty('--start-x', `${currentX}px`);
+    document.documentElement.style.setProperty('--start-y', `${currentY}px`);
+    document.documentElement.style.setProperty('--target-x', `${nextX}px`);
+    document.documentElement.style.setProperty('--target-y', `${nextY}px`);
+
+    // Calculate animation duration based on distance and speed
+    const distance = Math.sqrt(
+      Math.pow(nextX - currentX, 2) + Math.pow(nextY - currentY, 2)
+    );
+    const duration = distance / speed; // in seconds
+
+    document.documentElement.style.setProperty(
+      '--animation-duration',
+      `${duration.toFixed(2)}s`
+    );
+
+    // Start the animation
+    animationInProgress = true;
+    logo.classList.add('in-motion');
+
+    // Update current position for next calculation
+    currentX = nextX;
+    currentY = nextY;
+
+    // Calculate when this animation will end
+    animationEndTime = Date.now() + duration * 1000;
+
+    // Set up the next animation segment
+    setTimeout(() => {
+      // Remove the animation class
+      logo.classList.remove('in-motion');
+
+      // Force a reflow to ensure CSS animation restarts
+      void logo.offsetWidth;
+
+      // Calculate and start the next animation segment
+      setTimeout(() => {
+        animationInProgress = false;
+        calculateNextPosition();
+      }, 50);
+    }, duration * 1000);
+
+    if (isDebugMode) {
+      console.log(
+        `Animating to [${nextX.toFixed(0)}, ${nextY.toFixed(
+          0
+        )}] in ${duration.toFixed(2)}s`
+      );
+    }
   };
 
   // Center the logo initially
   logo.style.position = 'absolute';
   logo.style.left = '50vw';
   logo.style.top = '50vh';
-  logo.style.transform = 'translate(-50%, -50%)';
 
   // Add debug button
   addDebugButton();
@@ -142,11 +311,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Remove the glow class after the specified duration
     setTimeout(() => {
       logo.classList.remove('glow');
-
-      // Force reflow and resume animation
-      setTimeout(() => {
-        logo.style.animationPlayState = 'running';
-      }, 50);
     }, duration);
   };
 
@@ -157,6 +321,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Function to update debug position information
+  const updateDebugPosition = () => {
+    if (!isDebugMode) return;
+
+    const logoRect = logo.getBoundingClientRect();
+    const centerX = logoRect.left + logoRect.width / 2;
+    const centerY = logoRect.top + logoRect.height / 2;
+
+    const timeLeft = Math.max(0, (animationEndTime - Date.now()) / 1000);
+
+    body.setAttribute(
+      'data-position',
+      `Pos: ${centerX.toFixed(0)}x${centerY.toFixed(0)} ` +
+        `Target: [${currentX.toFixed(0)}, ${currentY.toFixed(0)}] ` +
+        `Vel: ${velocityX.toFixed(1)}x${velocityY.toFixed(1)} ` +
+        `Time: ${timeLeft.toFixed(1)}s`
+    );
+  };
+
   // Start the FPS meter if available
   // @ts-ignore: fpsMeter is added by fps-meter.js
   if (window.fpsMeter) {
@@ -164,116 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.fpsMeter.start();
   }
 
-  // Add corner detection based on animation timing
-  const detectCorners = () => {
-    if (!logo) return;
-
-    // Get the computed style to check the animation progress
-    const computedStyle = window.getComputedStyle(logo);
-    const rect = logo.getBoundingClientRect();
-
-    // Get the current position of the logo (center point)
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    // Calculate the viewport boundaries accounting for logo dimensions
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    // Calculate how far the center of the logo is from each edge
-    // This accounts for the translate(-50%, -50%) that centers the logo
-    const distanceToLeft = centerX;
-    const distanceToRight = viewportWidth - centerX;
-    const distanceToTop = centerY;
-    const distanceToBottom = viewportHeight - centerY;
-
-    // Threshold for considering the logo at a border (in pixels)
-    const borderThreshold = 20;
-
-    // Calculate where we are in the animation
-    const animDuration = 8; // matches the 8s in CSS
-    const currentTime = (Date.now() / 1000) % animDuration;
-
-    /**
-     * Checks if the current animation time is near the target corner time
-     * @param {number} target - The target time in the animation (in seconds)
-     * @returns {boolean} - Whether we're near the target corner
-     */
-    const nearCorner = (target) => {
-      const threshold = 0.1; // 100ms threshold
-      return (
-        Math.abs((currentTime % animDuration) - target) < threshold ||
-        Math.abs((currentTime % animDuration) - (animDuration + target)) <
-          threshold
-      );
-    };
-
-    // Update debug information if debug mode is on
-    if (isDebugMode) {
-      const secondsInAnim = currentTime.toFixed(1);
-      const percentComplete = ((currentTime / animDuration) * 100).toFixed(0);
-      body.setAttribute(
-        'data-position',
-        `Animation: ${secondsInAnim}s / ${animDuration}s (${percentComplete}%) - ` +
-          `Dist: L:${distanceToLeft.toFixed(0)}, R:${distanceToRight.toFixed(
-            0
-          )}, ` +
-          `T:${distanceToTop.toFixed(0)}, B:${distanceToBottom.toFixed(0)}`
-      );
-    }
-
-    // Detect which corner we're near using both position and animation time
-    let cornerName = '';
-
-    // Position-based detection (primary method)
-    const halfWidth = rect.width / 2;
-    const halfHeight = rect.height / 2;
-
-    if (
-      distanceToLeft <= halfWidth + borderThreshold &&
-      distanceToTop <= halfHeight + borderThreshold
-    ) {
-      cornerName = 'top-left';
-    } else if (
-      distanceToRight <= halfWidth + borderThreshold &&
-      distanceToTop <= halfHeight + borderThreshold
-    ) {
-      cornerName = 'top-right';
-    } else if (
-      distanceToRight <= halfWidth + borderThreshold &&
-      distanceToBottom <= halfHeight + borderThreshold
-    ) {
-      cornerName = 'bottom-right';
-    } else if (
-      distanceToLeft <= halfWidth + borderThreshold &&
-      distanceToBottom <= halfHeight + borderThreshold
-    ) {
-      cornerName = 'bottom-left';
-    } else {
-      // Fallback to time-based detection if position doesn't indicate a corner
-      if (nearCorner(0)) {
-        cornerName = 'top-left';
-      } else if (nearCorner(2)) {
-        cornerName = 'top-right';
-      } else if (nearCorner(4)) {
-        cornerName = 'bottom-right';
-      } else if (nearCorner(6)) {
-        cornerName = 'bottom-left';
-      }
-    }
-
-    // If we're at a corner, trigger the glow effect
-    if (cornerName && isDebugMode) {
-      console.log(
-        `Corner detected: ${cornerName} at time ${currentTime.toFixed(2)}s`
-      );
-    }
-
-    if (cornerName) {
-      toggleGlow(2000);
-    }
-  };
-
-  // For a CSS animation, we can check periodically for corners
-  setInterval(detectCorners, 100); // Check every 100ms
+  // Update debug position periodically
+  setInterval(updateDebugPosition, 100);
 });
