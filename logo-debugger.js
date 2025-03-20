@@ -105,10 +105,37 @@ class LogoDebugger {
       border-top: 1px solid #333;
     `;
 
+    const controlsSection = document.createElement('div');
+    controlsSection.style.cssText = `
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #333;
+    `;
+
+    const cornerButton = document.createElement('button');
+    cornerButton.innerHTML = '🎯 Target Corner';
+    cornerButton.style.cssText = `
+      background: rgba(0, 255, 0, 0.2);
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      border-radius: 4px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-family: monospace;
+      margin-top: 5px;
+    `;
+    cornerButton.addEventListener('click', () => {
+      if (this.onTargetCorner) {
+        this.onTargetCorner();
+      }
+    });
+    controlsSection.appendChild(cornerButton);
+
     panel.appendChild(normalizedInfo);
     panel.appendChild(windowInfo);
     panel.appendChild(angleInfo);
     panel.appendChild(boundsInfo);
+    panel.appendChild(controlsSection);
 
     this.body.appendChild(panel);
     this.debugPanel = panel;
@@ -339,6 +366,14 @@ class LogoDebugger {
       // This will be called with current state by LogoAnimator
       // The actual updatePosition call happens there
     }, 100);
+  }
+
+  /**
+   * Set the callback for when the target corner button is clicked
+   * @param {() => void} callback - The callback to execute
+   */
+  setTargetCornerCallback(callback) {
+    this.onTargetCorner = callback;
   }
 }
 

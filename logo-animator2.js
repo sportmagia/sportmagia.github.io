@@ -354,6 +354,62 @@ class LogoAnimator2 {
   }
 
   /**
+   * Calculate angle needed to hit the nearest corner while maintaining direction
+   * @returns {number} The new angle in radians
+   */
+  calculateCornerAngle() {
+    // Get current direction signs to maintain direction
+    const dx = Math.cos(this.angle);
+    const dy = Math.sin(this.angle);
+
+    if (!this.logoDimensions) this.updateLogoDimensionsAndBounds();
+    const dimensions = /** @type {LogoDimensions} */ (this.logoDimensions);
+    const halfWidth = dimensions.width / 2;
+    const halfHeight = dimensions.height / 2;
+
+    // Find nearest corner based on current direction, accounting for logo dimensions
+    const targetX =
+      dx > 0
+        ? this.bottomEnd() - halfWidth // right wall minus half width
+        : this.topEnd() + halfWidth; // left wall plus half width
+
+    const targetY =
+      dy > 0
+        ? this.rightEnd() - halfHeight // bottom wall minus half height
+        : this.leftEnd() + halfHeight; // top wall plus half height
+
+    // Calculate angle to that corner
+    const deltaX = targetX - this.currentX;
+    const deltaY = targetY - this.currentY;
+
+    // Calculate new angle
+    let newAngle = Math.atan2(deltaY, deltaX);
+    if (newAngle < 0) newAngle += 2 * Math.PI;
+
+    return newAngle;
+  }
+
+  /**
+   * Update angle to target nearest corner
+   */
+  targetCorner() {
+    this.angle = this.calculateCornerAngle();
+    this.updateCSSVariables();
+
+    if (this.debugger) {
+      this.debugger.log(
+        `Angle adjusted to target corner: ${(
+          (this.angle * 180) /
+          Math.PI
+        ).toFixed(1)}° ` +
+          `[${Math.cos(this.angle).toFixed(3)}, ${Math.sin(this.angle).toFixed(
+            3
+          )}]`
+      );
+    }
+  }
+
+  /**
    * Initialize the animation
    */
   initialize() {
@@ -362,10 +418,10 @@ class LogoAnimator2 {
     // Initialize debugger if enabled
     if (this.debugger) {
       this.debugger.initialize();
+      this.debugger.setTargetCornerCallback(() => this.targetCorner());
     }
 
     // Set initial dimensions and update CSS variables
-
     this.initializeLogoDimensions();
     this.updateCSSVariables();
 
