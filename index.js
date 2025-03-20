@@ -1,4 +1,4 @@
-import LogoAnimator2 from './logo-animator2.js';
+import LogoAnimator2 from './logo-animator.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Enable debug mode on localhost
