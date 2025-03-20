@@ -237,33 +237,6 @@ class LogoDebugger {
       fps,
     } = state;
 
-    // Update data attributes for backwards compatibility
-    this.body.setAttribute(
-      'data-position',
-      `Pos: ${centerX.toFixed(0)}x${centerY.toFixed(0)} ` +
-        `Current: [${currentX.toFixed(0)}, ${currentY.toFixed(0)}] ` +
-        `Actual: [${actualX.toFixed(0)}, ${actualY.toFixed(0)}] ` +
-        `Target: [${targetX.toFixed(0)}, ${targetY.toFixed(0)}] ` +
-        `Time: ${timeLeft.toFixed(1)}s`
-    );
-
-    this.body.setAttribute(
-      'data-viewport',
-      `${viewportWidth.toFixed(0)} x ${viewportHeight.toFixed(0)}px`
-    );
-
-    this.body.setAttribute(
-      'data-bounds',
-      `X: [${minX.toFixed(0)}, ${maxX.toFixed(0)}] Y: [${minY.toFixed(
-        0
-      )}, ${maxY.toFixed(0)}]`
-    );
-
-    this.body.setAttribute(
-      'data-angle',
-      `Angle: ${angleDegrees.toFixed(1)}° (${angle.toFixed(3)} rad)`
-    );
-
     // Update debug panel with both coordinate systems
     if (this.debugPanel) {
       const normalizedInfo = document.getElementById('debug-normalized');
@@ -340,32 +313,6 @@ class LogoDebugger {
     if (normalizedAngle > 202.5 && normalizedAngle <= 247.5) return '↖ Up-Left';
     if (normalizedAngle > 247.5 && normalizedAngle <= 292.5) return '↑ Up';
     return '↗ Up-Right';
-  }
-
-  /**
-   * Update logo dimensions debug info
-   * @param {Object} state - Current state
-   * @param {number} state.width - Logo width
-   * @param {number} state.height - Logo height
-   * @param {number} state.viewportWidth - Current viewport width
-   * @param {number} state.viewportHeight - Current viewport height
-   */
-  updateDimensions(state) {
-    if (!this.isDebugMode) return;
-
-    const { width, height, viewportWidth, viewportHeight } = state;
-
-    this.log(`Logo dimensions: ${width.toFixed(1)} x ${height.toFixed(1)}px`);
-
-    this.body.setAttribute(
-      'data-logo-size',
-      `${width.toFixed(0)} x ${height.toFixed(0)}px`
-    );
-
-    this.body.setAttribute(
-      'data-viewport',
-      `${viewportWidth.toFixed(0)} x ${viewportHeight.toFixed(0)}px`
-    );
   }
 
   /**

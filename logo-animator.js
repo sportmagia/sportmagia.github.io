@@ -132,15 +132,6 @@ class LogoAnimator {
       topBound: this.leftEnd() + logoRect.height / 2,
       bottomBound: this.rightEnd() - logoRect.height / 2,
     };
-
-    if (this.debugger) {
-      this.debugger.updateDimensions({
-        width: logoRect.width,
-        height: logoRect.height,
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
-      });
-    }
   }
 
   /**
