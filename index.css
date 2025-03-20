@@ -74,7 +74,10 @@ body {
     drop-shadow(0 0 25px rgba(255, 140, 0, 0.6))
     drop-shadow(0 0 35px rgba(255, 69, 0, 0.4));
   transition: filter 0.3s ease-in-out, transform 0.3s ease-out;
-  transform: translate(-50%, -50%) scale(1.1); /* Slightly grow the logo while maintaining centering */
+  transform: translate(
+    -50%,
+    -50%
+  ); /* Slightly grow the logo while maintaining centering */
 }
 
 /* Debug button - made more subtle */
