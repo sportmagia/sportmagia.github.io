@@ -51,6 +51,18 @@ document.addEventListener('DOMContentLoaded', () => {
   let animationInProgress = false;
   let animationEndTime = 0;
 
+  // Timeout tracking
+  /** @type {ReturnType<typeof setTimeout>|undefined} */
+  let logoLoadTimeout;
+  /** @type {ReturnType<typeof setTimeout>|undefined} */
+  let animationSegmentTimeout;
+  /** @type {ReturnType<typeof setTimeout>|undefined} */
+  let nextAnimationTimeout;
+  /** @type {ReturnType<typeof setTimeout>|undefined} */
+  let glowTimeout;
+  /** @type {ReturnType<typeof setTimeout>|undefined} */
+  let resizeTimeout;
+
   // Update visibility of debug elements
   const updateDebugElements = () => {
     body.classList.toggle('debug-mode', isDebugMode);
@@ -72,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     body.appendChild(button);
   };
 
-  // Set logo dimensions based on viewport and update CSS variables
+  // Set logo dimensions based on viewport
   const updateLogoDimensions = () => {
     // Calculate logo width - 20% of viewport with minimum 200px
     const viewportWidth = window.innerWidth;
@@ -82,54 +94,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set logo width
     logo.style.width = `${baseWidth}px`;
 
+    // Clear any existing timeout
+    clearTimeout(logoLoadTimeout);
+
     // Wait for the logo to load/render to get its actual dimensions
-    setTimeout(() => {
+    logoLoadTimeout = setTimeout(() => {
       const logoRect = logo.getBoundingClientRect();
       const logoWidth = logoRect.width;
       const logoHeight = logoRect.height;
 
-      console.log(
-        `Logo dimensions: ${logoWidth.toFixed(1)} x ${logoHeight.toFixed(1)}px`
-      );
-
-      // Set CSS variables for the logo dimensions
-      document.documentElement.style.setProperty(
-        '--logo-width',
-        `${logoWidth}px`
-      );
-      document.documentElement.style.setProperty(
-        '--logo-height',
-        `${logoHeight}px`
-      );
-
-      // Also set useful calculated values
-      document.documentElement.style.setProperty(
-        '--logo-width-value',
-        `${logoWidth}`
-      );
-      document.documentElement.style.setProperty(
-        '--logo-height-value',
-        `${logoHeight}`
-      );
-
-      // Calculate bounce positions
-      const maxX = viewportWidth - logoWidth;
-      const maxY = viewportHeight - logoHeight;
-
-      document.documentElement.style.setProperty('--max-x', `${maxX}px`);
-      document.documentElement.style.setProperty('--max-y', `${maxY}px`);
-
-      // Update CSS variables with translation offsets for corner detection
-      // Since the logo is centered with translate(-50%, -50%), the effective
-      // position is offset by half the logo's dimensions
-      document.documentElement.style.setProperty(
-        '--translate-x',
-        `${logoWidth / 2}px`
-      );
-      document.documentElement.style.setProperty(
-        '--translate-y',
-        `${logoHeight / 2}px`
-      );
+      if (isDebugMode) {
+        console.log(
+          `Logo dimensions: ${logoWidth.toFixed(1)} x ${logoHeight.toFixed(
+            1
+          )}px`
+        );
+      }
 
       // Update debug data attributes
       body.setAttribute(
@@ -137,9 +117,21 @@ document.addEventListener('DOMContentLoaded', () => {
         `${logoWidth.toFixed(0)} x ${logoHeight.toFixed(0)}px`
       );
 
+      // Also set viewport dimensions for debugging
+      body.setAttribute(
+        'data-viewport',
+        `${viewportWidth.toFixed(0)} x ${viewportHeight.toFixed(0)}px`
+      );
+
       // We'll start the animation from the center
       currentX = viewportWidth / 2;
       currentY = viewportHeight / 2;
+
+      // Set initial position directly with CSS variables for animation
+      document.documentElement.style.setProperty('--start-x', `${currentX}px`);
+      document.documentElement.style.setProperty('--start-y', `${currentY}px`);
+      document.documentElement.style.setProperty('--target-x', `${currentX}px`);
+      document.documentElement.style.setProperty('--target-y', `${currentY}px`);
 
       // Start the animation
       if (!animationInProgress) {
@@ -168,13 +160,11 @@ document.addEventListener('DOMContentLoaded', () => {
     currentX = actualPosition.x;
     currentY = actualPosition.y;
 
-    // Calculate collision bounds (where the center point can go)
-    const halfWidth = logoWidth / 2;
-    const halfHeight = logoHeight / 2;
-    const leftBound = halfWidth;
-    const rightBound = viewportWidth - halfWidth;
-    const topBound = halfHeight;
-    const bottomBound = viewportHeight - halfHeight;
+    // Calculate collision bounds (where the logo's center point can go)
+    const leftBound = 0 + logoWidth / 2;
+    const rightBound = viewportWidth - logoWidth / 2;
+    const topBound = 0 + logoHeight / 2;
+    const bottomBound = viewportHeight - logoHeight / 2;
 
     // Calculate the time it would take to hit each wall
     // Assuming the logo continues in the current direction
@@ -241,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
       velocityY = -velocityY; // Reverse y direction
     }
 
-    // Update CSS variables for the animation
+    // Directly set CSS variables for the animation keyframes
     document.documentElement.style.setProperty('--start-x', `${currentX}px`);
     document.documentElement.style.setProperty('--start-y', `${currentY}px`);
     document.documentElement.style.setProperty('--target-x', `${nextX}px`);
@@ -290,7 +280,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Set up the next animation segment
-    setTimeout(() => {
+    // Clear any existing animation timeouts
+    clearTimeout(animationSegmentTimeout);
+    clearTimeout(nextAnimationTimeout);
+
+    animationSegmentTimeout = setTimeout(() => {
       // Set the exact position at the end of the animation to ensure seamless transition
       logo.style.left = `${nextX}px`;
       logo.style.top = `${nextY}px`;
@@ -299,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
       logo.classList.remove('in-motion');
 
       // Schedule the next segment after a very short delay
-      setTimeout(() => {
+      nextAnimationTimeout = setTimeout(() => {
         animationInProgress = false;
         calculateNextPosition();
       }, 16); // 1 frame at 60fps
@@ -312,6 +306,15 @@ document.addEventListener('DOMContentLoaded', () => {
         )}] in ${duration.toFixed(2)}s`
       );
     }
+  };
+
+  // Function to clear all timeouts
+  const clearAllTimeouts = () => {
+    clearTimeout(logoLoadTimeout);
+    clearTimeout(animationSegmentTimeout);
+    clearTimeout(nextAnimationTimeout);
+    clearTimeout(glowTimeout);
+    clearTimeout(resizeTimeout);
   };
 
   // Center the logo initially
@@ -329,7 +332,32 @@ document.addEventListener('DOMContentLoaded', () => {
   updateLogoDimensions();
 
   // Update dimensions when window is resized
-  window.addEventListener('resize', updateLogoDimensions);
+  window.addEventListener('resize', () => {
+    // Cancel any pending resize handler
+    clearTimeout(resizeTimeout);
+
+    // Debounce the resize handler to avoid too many calls
+    resizeTimeout = setTimeout(() => {
+      // Stop any current animation
+      if (animationInProgress) {
+        logo.classList.remove('in-motion');
+        animationInProgress = false;
+      }
+
+      // Clear all timeouts to ensure clean state
+      clearAllTimeouts();
+
+      // Update dimensions and restart animation
+      updateLogoDimensions();
+
+      // Log viewport dimensions in debug mode
+      if (isDebugMode) {
+        console.log(
+          `Viewport resized: ${window.innerWidth}x${window.innerHeight}`
+        );
+      }
+    }, 250); // Wait for resize to complete
+  });
 
   // Update dimensions when logo image loads (in case it wasn't loaded yet)
   logo.addEventListener('load', updateLogoDimensions);
@@ -340,8 +368,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logo.classList.add('glow');
 
+    // Clear any existing glow timeout
+    clearTimeout(glowTimeout);
+
     // Remove the glow class after the specified duration
-    setTimeout(() => {
+    glowTimeout = setTimeout(() => {
       logo.classList.remove('glow');
     }, duration);
   };
@@ -360,15 +391,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoRect = logo.getBoundingClientRect();
     const centerX = logoRect.left + logoRect.width / 2;
     const centerY = logoRect.top + logoRect.height / 2;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
     const timeLeft = Math.max(0, (animationEndTime - Date.now()) / 1000);
 
+    // Update position data attribute with comprehensive information
     body.setAttribute(
       'data-position',
       `Pos: ${centerX.toFixed(0)}x${centerY.toFixed(0)} ` +
         `Target: [${currentX.toFixed(0)}, ${currentY.toFixed(0)}] ` +
         `Vel: ${velocityX.toFixed(1)}x${velocityY.toFixed(1)} ` +
         `Time: ${timeLeft.toFixed(1)}s`
+    );
+
+    // Keep viewport size updated
+    body.setAttribute(
+      'data-viewport',
+      `${viewportWidth.toFixed(0)} x ${viewportHeight.toFixed(0)}px`
     );
   };
 

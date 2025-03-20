@@ -1,25 +1,12 @@
 :root {
-  /* Default fallback values - will be overridden by JavaScript */
-  --logo-width: 200px;
-  --logo-height: 180px; /* Approximate based on typical logo ratio */
-
-  /* Translation offsets for centering (accounting for transform: translate(-50%, -50%)) */
-  --translate-x: calc(var(--logo-width) / 2);
-  --translate-y: calc(var(--logo-height) / 2);
-
-  /* Max bounds for animation (viewport size minus logo dimensions) */
-  --max-x: calc(100vw - var(--logo-width));
-  --max-y: calc(100vh - var(--logo-height));
-
-  /* Physics animation settings */
-  --angle-deg: 40; /* 40 degree angle for movement */
+  /* Animation settings */
   --animation-duration: 2s; /* Duration for each segment */
 
-  /* Current and target positions - will be updated by JS */
-  --start-x: 50vw; /* Start at center */
+  /* Current and target positions - set by JS */
+  --start-x: 50vw;
   --start-y: 50vh;
-  --target-x: calc(var(--max-x) * 0.8);
-  --target-y: calc(var(--max-y) * 0.3);
+  --target-x: 50vw;
+  --target-y: 50vh;
 }
 
 canvas {
