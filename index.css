@@ -43,41 +43,41 @@ body {
 #logo {
   position: absolute;
   height: auto; /* Maintain aspect ratio */
-  will-change: transform, left, top; /* Performance optimization hint */
+  will-change: left, top; /* Optimize for position changes */
   transform-origin: center;
   transform: translate(-50%, -50%); /* Center the logo on its position */
   left: var(--start-x);
   top: var(--start-y);
   transition: transform 0.3s ease-out; /* For glow effect scaling */
+  pointer-events: none; /* Prevent logo from interfering with interactions */
 }
 
 #logo.animate {
   animation: move-to-target var(--animation-duration) linear forwards;
   animation-play-state: running !important; /* Ensure animation runs */
+  animation-timing-function: linear !important; /* Force linear timing for constant speed */
+  animation-fill-mode: forwards !important; /* Maintain final position */
 }
 
 /* Linear movement towards target position */
 @keyframes move-to-target {
-  from {
+  0% {
     left: var(--start-x);
     top: var(--start-y);
   }
-  to {
+  100% {
     left: var(--target-x);
     top: var(--target-y);
   }
 }
 
-/* Optional: Add a glow effect when class is applied */
+/* Glow effect with improved performance */
 #logo.glow {
   filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.9))
     drop-shadow(0 0 25px rgba(255, 140, 0, 0.6))
     drop-shadow(0 0 35px rgba(255, 69, 0, 0.4));
-  transition: filter 0.3s ease-in-out, transform 0.3s ease-out;
-  transform: translate(
-    -50%,
-    -50%
-  ); /* Slightly grow the logo while maintaining centering */
+  transform: translate(-50%, -50%);
+  transition: filter 0.3s ease-in-out;
 }
 
 /* Debug button - made more subtle */

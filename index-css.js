@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const logoAnimator2 = new LogoAnimator2('logo', {
     angle: -40,
-    speed: 300,
+    traversalDuration: 4,
     debug: isLocalhost,
   });
 

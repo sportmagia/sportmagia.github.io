@@ -25,11 +25,11 @@ class LogoAnimator2 {
    * @param {string} logoId - The ID of the logo element
    * @param {Object} options - Configuration options
    * @param {number} [options.angle=40] - Angle in degrees
-   * @param {number} [options.speed=300] - Speed in pixels per second
+   * @param {number} [options.traversalDuration=4] - Time in seconds to traverse window diagonally
    * @param {boolean} [options.debug=false] - Enable debug mode
    */
   constructor(logoId, options = {}) {
-    const { angle = 40, speed = 300, debug = false } = options;
+    const { angle = 40, traversalDuration = 4, debug = false } = options;
 
     // DOM elements
     this.logo = document.getElementById(logoId);
@@ -41,7 +41,8 @@ class LogoAnimator2 {
 
     // Physics settings
     this.angle = angle * (Math.PI / 180);
-    this.speed = speed;
+    this.traversalDuration = traversalDuration;
+    this.speed = this.calculateSpeedFromDuration();
 
     // Cached dimensions
     /** @type {LogoDimensions|null} */
@@ -85,6 +86,20 @@ class LogoAnimator2 {
     this.initializeLogoDimensions = this.initializeLogoDimensions.bind(this);
     this.handleResize = this.handleResize.bind(this);
     this.mainLoop = this.mainLoop.bind(this);
+  }
+
+  /**
+   * Calculate speed based on window diagonal and desired traversal duration
+   * @returns {number} Speed in pixels per second
+   */
+  calculateSpeedFromDuration() {
+    // Calculate window diagonal
+    const diagonal = Math.sqrt(
+      Math.pow(window.innerWidth, 2) + Math.pow(window.innerHeight, 2)
+    );
+
+    // Calculate speed needed to traverse diagonal in specified duration
+    return diagonal / this.traversalDuration;
   }
 
   /**
@@ -353,6 +368,8 @@ class LogoAnimator2 {
    * Handle window resize event
    */
   handleResize() {
+    // Update speed based on new window size while maintaining traversal duration
+    this.speed = this.calculateSpeedFromDuration();
     this.debouncedResize();
   }
 
