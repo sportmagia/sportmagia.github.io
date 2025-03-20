@@ -36,10 +36,6 @@ body {
   left: var(--start-x);
   top: var(--start-y);
   transition: transform 0.3s ease-out; /* For glow effect scaling */
-}
-
-/* Logo in motion state - JS will add this class */
-#logo.in-motion {
   animation: move-to-target var(--animation-duration) linear forwards;
   animation-play-state: running !important; /* Ensure animation runs */
 }
@@ -129,9 +125,4 @@ body.debug-mode::before {
   font-family: monospace;
   font-size: 12px;
   z-index: 999;
-}
-
-/* Responsive adjustments for smaller screens */
-@media (max-width: 768px) {
-  /* All dimensions are now handled via CSS variables set by JavaScript */
 }

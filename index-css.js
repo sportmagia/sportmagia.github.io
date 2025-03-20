@@ -160,11 +160,28 @@ document.addEventListener('DOMContentLoaded', () => {
     currentX = actualPosition.x;
     currentY = actualPosition.y;
 
+    // Get accurate logo dimensions by measuring the actual rendered element
+    const actualLogoRect = logo.getBoundingClientRect();
+
+    if (isDebugMode) {
+      console.log(
+        `Actual logo position: ${actualLogoRect.left}x${actualLogoRect.top}, size: ${actualLogoRect.width}x${actualLogoRect.height}`
+      );
+    }
+
     // Calculate collision bounds (where the logo's center point can go)
-    const leftBound = 0 + logoWidth / 2;
+    // Account for transform: translate(-50%, -50%) in the CSS
+    const leftBound = logoWidth / 2;
     const rightBound = viewportWidth - logoWidth / 2;
-    const topBound = 0 + logoHeight / 2;
+    const topBound = logoHeight / 2;
     const bottomBound = viewportHeight - logoHeight / 2;
+
+    if (isDebugMode) {
+      console.log(
+        `Bounds: left=${leftBound}, right=${rightBound}, top=${topBound}, bottom=${bottomBound}`
+      );
+      console.log(`Current position: x=${currentX}, y=${currentY}`);
+    }
 
     // Calculate the time it would take to hit each wall
     // Assuming the logo continues in the current direction
@@ -266,17 +283,14 @@ document.addEventListener('DOMContentLoaded', () => {
       logo.style.top =
         document.documentElement.style.getPropertyValue('--start-y');
 
-      // Temporarily disable animation
+      // // Temporarily disable animation
       logo.style.animation = 'none';
 
-      // Force reflow
+      // // Force reflow
       void logo.offsetWidth;
 
       // Remove explicit animation style
       logo.style.animation = '';
-
-      // Apply animation class
-      logo.classList.add('in-motion');
     });
 
     // Set up the next animation segment
@@ -288,9 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
       // Set the exact position at the end of the animation to ensure seamless transition
       logo.style.left = `${nextX}px`;
       logo.style.top = `${nextY}px`;
-
-      // Remove the animation class
-      logo.classList.remove('in-motion');
 
       // Schedule the next segment after a very short delay
       nextAnimationTimeout = setTimeout(() => {
