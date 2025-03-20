@@ -1,5 +1,6 @@
 // @ts-check
 
+import debounce from './debounce.js';
 import LogoDebugger from './logo-debugger.js';
 
 /**
@@ -16,6 +17,10 @@ import LogoDebugger from './logo-debugger.js';
  * @typedef {Object} ViewportDimensions
  * @property {number} width - Viewport width
  * @property {number} height - Viewport height
+ */
+
+/**
+ * @typedef {((...args: any[]) => void) & { cancel: () => void }} DebouncedFunction
  */
 
 /**
@@ -69,8 +74,6 @@ class LogoAnimator {
     this.nextAnimationTimeout = undefined;
     /** @type {ReturnType<typeof setTimeout>|undefined} */
     this.glowTimeout = undefined;
-    /** @type {ReturnType<typeof setTimeout>|undefined} */
-    this.resizeTimeout = undefined;
 
     // Debug setup
     this.debugger = debug
@@ -81,6 +84,25 @@ class LogoAnimator {
             window.location.hostname === '',
         })
       : null;
+
+    /** @type {DebouncedFunction} */
+    this.debouncedResize = /** @type {DebouncedFunction} */ (
+      debounce(() => {
+        if (this.animationInProgress) {
+          this.logo.classList.remove('in-motion');
+          this.animationInProgress = false;
+        }
+
+        this.clearAllTimeouts();
+        this.updateLogoDimensions();
+
+        if (this.debugger) {
+          this.debugger.log(
+            `Viewport resized: ${window.innerWidth}x${window.innerHeight}`
+          );
+        }
+      }, 250)
+    );
 
     // Bind methods
     this.updateLogoDimensions = this.updateLogoDimensions.bind(this);
@@ -321,7 +343,6 @@ class LogoAnimator {
     clearTimeout(this.animationSegmentTimeout);
     clearTimeout(this.nextAnimationTimeout);
     clearTimeout(this.glowTimeout);
-    clearTimeout(this.resizeTimeout);
   }
 
   toggleGlow(duration = 2000) {
@@ -335,24 +356,11 @@ class LogoAnimator {
     }, duration);
   }
 
+  /**
+   * Handle window resize event using debounced function
+   */
   handleResize() {
-    clearTimeout(this.resizeTimeout);
-
-    this.resizeTimeout = setTimeout(() => {
-      if (this.animationInProgress) {
-        this.logo.classList.remove('in-motion');
-        this.animationInProgress = false;
-      }
-
-      this.clearAllTimeouts();
-      this.updateLogoDimensions();
-
-      if (this.debugger) {
-        this.debugger.log(
-          `Viewport resized: ${window.innerWidth}x${window.innerHeight}`
-        );
-      }
-    }, 250);
+    this.debouncedResize();
   }
 
   initialize() {
@@ -393,6 +401,9 @@ class LogoAnimator {
 
     // Clear all timeouts
     this.clearAllTimeouts();
+
+    // Cancel debounced resize
+    this.debouncedResize.cancel();
 
     // Clean up debugger if enabled
     if (this.debugger) {
