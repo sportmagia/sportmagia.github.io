@@ -1,3 +1,30 @@
+:root {
+  /* Default fallback values - will be overridden by JavaScript */
+  --logo-width: 200px;
+  --logo-height: 180px; /* Approximate based on typical logo ratio */
+
+  /* Translation offsets for centering (accounting for transform: translate(-50%, -50%)) */
+  --translate-x: calc(var(--logo-width) / 2);
+  --translate-y: calc(var(--logo-height) / 2);
+
+  /* Max bounds for animation (viewport size minus logo dimensions) */
+  --max-x: calc(100vw - var(--logo-width));
+  --max-y: calc(100vh - var(--logo-height));
+
+  /* Pre-calculated corner positions (including translation offset) */
+  --top-left-x: var(--translate-x);
+  --top-left-y: var(--translate-y);
+
+  --top-right-x: calc(var(--max-x) + var(--translate-x));
+  --top-right-y: var(--translate-y);
+
+  --bottom-right-x: calc(var(--max-x) + var(--translate-x));
+  --bottom-right-y: calc(var(--max-y) + var(--translate-y));
+
+  --bottom-left-x: var(--translate-x);
+  --bottom-left-y: calc(var(--max-y) + var(--translate-y));
+}
+
 canvas {
   position: fixed;
   top: 0;
@@ -18,8 +45,6 @@ body {
 
 #logo {
   position: absolute;
-  width: 20vw; /* Make logo width 20% of the viewport width */
-  min-width: 200px; /* Minimum width of 200px */
   height: auto; /* Maintain aspect ratio */
   animation: bounce 8s linear infinite;
   will-change: transform, left, top; /* Performance optimization hint */
@@ -27,29 +52,27 @@ body {
   transition: transform 0.3s ease-out; /* Add transition for smoother scaling */
 }
 
-/* Combined horizontal and vertical bounce animation */
+/* Combined horizontal and vertical bounce animation using CSS variables */
 @keyframes bounce {
   0% {
-    left: 0;
-    top: 0;
+    left: var(--top-left-x);
+    top: var(--top-left-y);
   }
   25% {
-    left: calc(100% - 20vw - 10px); /* Subtract logo width and a small offset */
-    top: 0;
+    left: var(--top-right-x);
+    top: var(--top-right-y);
   }
   50% {
-    left: calc(100% - 20vw - 10px);
-    top: calc(
-      100% - 20vw * 0.9 - 10px
-    ); /* Approximate height based on width + offset */
+    left: var(--bottom-right-x);
+    top: var(--bottom-right-y);
   }
   75% {
-    left: 0;
-    top: calc(100% - 20vw * 0.9 - 10px);
+    left: var(--bottom-left-x);
+    top: var(--bottom-left-y);
   }
   100% {
-    left: 0;
-    top: 0;
+    left: var(--top-left-x);
+    top: var(--top-left-y);
   }
 }
 
@@ -114,33 +137,22 @@ body.debug-mode::after {
   z-index: 999;
 }
 
+/* Show logo dimensions in debug mode - useful for testing */
+body.debug-mode::before {
+  content: 'Logo: ' attr(data-logo-size);
+  position: fixed;
+  bottom: 40px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  z-index: 999;
+}
+
 /* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
-  #logo {
-    width: 30vw; /* Larger percentage on smaller screens */
-  }
-
-  /* Adjust animation for smaller screens */
-  @keyframes bounce {
-    0% {
-      left: 0;
-      top: 0;
-    }
-    25% {
-      left: calc(100% - 30vw - 10px);
-      top: 0;
-    }
-    50% {
-      left: calc(100% - 30vw - 10px);
-      top: calc(100% - 30vw * 0.9 - 10px);
-    }
-    75% {
-      left: 0;
-      top: calc(100% - 30vw * 0.9 - 10px);
-    }
-    100% {
-      left: 0;
-      top: 0;
-    }
-  }
+  /* All dimensions are now handled via CSS variables set by JavaScript */
 }
