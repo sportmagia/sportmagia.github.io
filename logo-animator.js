@@ -67,6 +67,12 @@ class LogoAnimator {
     this.animationFrameId = null;
     this.lastFrameTime = 0;
 
+    // FPS tracking
+    this.frameCount = 0;
+    this.lastFpsUpdate = 0;
+    this.currentFps = 0;
+    this.fpsUpdateInterval = 500; // Update FPS every 500ms
+
     // Debug setup
     this.debugger = debug
       ? new LogoDebugger(this.logo, {
@@ -254,6 +260,11 @@ class LogoAnimator {
     const deltaTime = (timestamp - this.lastFrameTime) / 1000;
     this.lastFrameTime = timestamp;
 
+    // Update FPS in debugger
+    if (this.debugger) {
+      this.debugger.updateFps(timestamp);
+    }
+
     // Get current position from computed style and convert to normalized coordinates
     const computedStyle = window.getComputedStyle(this.logo);
     const windowX = parseFloat(computedStyle.left) || window.innerWidth / 2;
@@ -357,6 +368,7 @@ class LogoAnimator {
         minY: this.leftEnd(),
         angle: this.angle,
         angleDegrees: (this.angle * 180) / Math.PI,
+        fps: this.debugger.currentFps,
       });
     }
 
@@ -470,13 +482,6 @@ class LogoAnimator {
     this.isAnimating = true;
     this.lastFrameTime = performance.now();
     this.animationFrameId = requestAnimationFrame(this.mainLoop);
-
-    // Start FPS meter if available
-    // @ts-ignore: fpsMeter is added by fps-meter.js
-    if (window.fpsMeter) {
-      // @ts-ignore: fpsMeter is added by fps-meter.js
-      window.fpsMeter.start();
-    }
   }
 
   /**

@@ -19,8 +19,15 @@ class LogoDebugger {
     this.debugPanel = null;
     this.debugInterval = null;
 
+    // FPS tracking
+    this.frameCount = 0;
+    this.lastFpsUpdate = 0;
+    this.currentFps = 0;
+    this.fpsUpdateInterval = 500; // Update FPS every 500ms
+
     // Bind methods
     this.updatePosition = this.updatePosition.bind(this);
+    this.updateFps = this.updateFps.bind(this);
   }
 
   /**
@@ -204,6 +211,7 @@ class LogoDebugger {
    * @param {number} state.minY - Minimum Y boundary
    * @param {number} state.angle - Current angle in radians
    * @param {number} state.angleDegrees - Current angle in degrees
+   * @param {number} state.fps - Current frames per second
    */
   updatePosition(state) {
     if (!this.isDebugMode) return;
@@ -226,6 +234,7 @@ class LogoDebugger {
       minY,
       angle,
       angleDegrees,
+      fps,
     } = state;
 
     // Update data attributes for backwards compatibility
@@ -269,6 +278,7 @@ class LogoDebugger {
           <div>Bounds: [${minX.toFixed(0)}, ${maxX.toFixed(
           0
         )}] × [${minY.toFixed(0)}, ${maxY.toFixed(0)}]</div>
+          <div>FPS: ${fps || 0}</div>
         `;
       }
 
@@ -374,6 +384,23 @@ class LogoDebugger {
    */
   setTargetCornerCallback(callback) {
     this.onTargetCorner = callback;
+  }
+
+  /**
+   * Update FPS counter
+   * @param {number} timestamp - Current frame timestamp
+   */
+  updateFps(timestamp) {
+    if (!this.isDebugMode) return;
+
+    this.frameCount++;
+    if (timestamp - this.lastFpsUpdate >= this.fpsUpdateInterval) {
+      this.currentFps = Math.round(
+        (this.frameCount * 1000) / (timestamp - this.lastFpsUpdate)
+      );
+      this.frameCount = 0;
+      this.lastFpsUpdate = timestamp;
+    }
   }
 }
 
