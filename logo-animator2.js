@@ -204,13 +204,12 @@ class LogoAnimator2 {
     // Convert normalized coordinates to window coordinates for CSS
     const startPos = this.normalizedToWindow(this.currentX, this.currentY);
     const targetPos = this.normalizedToWindow(this.targetX(), this.targetY());
-    console.log(
-      { startPos, targetPos },
-      this.currentX,
-      this.currentY,
-      this.targetX(),
-      this.targetY()
-    );
+
+    // Calculate distance and required duration for constant speed
+    const dx = targetPos.x - startPos.x;
+    const dy = targetPos.y - startPos.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const duration = distance / this.speed; // duration in seconds for constant speed
 
     document.documentElement.style.setProperty('--start-x', `${startPos.x}px`);
     document.documentElement.style.setProperty('--start-y', `${startPos.y}px`);
@@ -221,6 +220,10 @@ class LogoAnimator2 {
     document.documentElement.style.setProperty(
       '--target-y',
       `${targetPos.y}px`
+    );
+    document.documentElement.style.setProperty(
+      '--animation-duration',
+      `${duration}s`
     );
 
     void this.logo.offsetWidth;

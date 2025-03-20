@@ -294,14 +294,15 @@ class LogoDebugger {
     const normalizedAngle = ((angleDegrees % 360) + 360) % 360;
 
     if (normalizedAngle > 337.5 || normalizedAngle <= 22.5) return '→ Right';
-    if (normalizedAngle > 22.5 && normalizedAngle <= 67.5) return '↗ Up-Right';
-    if (normalizedAngle > 67.5 && normalizedAngle <= 112.5) return '↑ Up';
-    if (normalizedAngle > 112.5 && normalizedAngle <= 157.5) return '↖ Up-Left';
-    if (normalizedAngle > 157.5 && normalizedAngle <= 202.5) return '← Left';
-    if (normalizedAngle > 202.5 && normalizedAngle <= 247.5)
+    if (normalizedAngle > 22.5 && normalizedAngle <= 67.5)
+      return '↘ Down-Right';
+    if (normalizedAngle > 67.5 && normalizedAngle <= 112.5) return '↓ Down';
+    if (normalizedAngle > 112.5 && normalizedAngle <= 157.5)
       return '↙ Down-Left';
-    if (normalizedAngle > 247.5 && normalizedAngle <= 292.5) return '↓ Down';
-    return '↘ Down-Right';
+    if (normalizedAngle > 157.5 && normalizedAngle <= 202.5) return '← Left';
+    if (normalizedAngle > 202.5 && normalizedAngle <= 247.5) return '↖ Up-Left';
+    if (normalizedAngle > 247.5 && normalizedAngle <= 292.5) return '↑ Up';
+    return '↗ Up-Right';
   }
 
   /**
