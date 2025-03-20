@@ -49,6 +49,9 @@ body {
   left: var(--start-x);
   top: var(--start-y);
   transition: transform 0.3s ease-out; /* For glow effect scaling */
+}
+
+#logo.animate {
   animation: move-to-target var(--animation-duration) linear forwards;
   animation-play-state: running !important; /* Ensure animation runs */
 }

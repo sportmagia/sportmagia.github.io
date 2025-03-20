@@ -83,8 +83,6 @@ class LogoDebugger {
    * @param {Object} state - Current animation state
    * @param {number} state.currentX - Current X position
    * @param {number} state.currentY - Current Y position
-   * @param {number} state.velocityX - X velocity
-   * @param {number} state.velocityY - Y velocity
    * @param {number} state.animationEndTime - Animation end timestamp
    */
   updatePosition(state) {
@@ -104,7 +102,6 @@ class LogoDebugger {
         `Target: [${state.currentX.toFixed(0)}, ${state.currentY.toFixed(
           0
         )}] ` +
-        `Vel: ${state.velocityX.toFixed(1)}x${state.velocityY.toFixed(1)} ` +
         `Time: ${timeLeft.toFixed(1)}s`
     );
 

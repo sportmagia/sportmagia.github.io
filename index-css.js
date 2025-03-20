@@ -19,6 +19,7 @@
  */
 
 import LogoAnimator from './logo-animator.js';
+import LogoAnimator2 from './logo-animator2.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Enable debug mode on localhost
@@ -33,5 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
     debug: isLocalhost,
   });
 
-  logoAnimator.initialize();
+  // logoAnimator.initialize();
+
+  const logoAnimator2 = new LogoAnimator2('logo', {
+    angle: 40,
+    speed: 300,
+    debug: isLocalhost,
+  });
+
+  logoAnimator2.initialize();
 });
