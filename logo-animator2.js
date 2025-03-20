@@ -39,6 +39,13 @@ class LogoAnimator2 {
       throw new Error(`Logo element with ID "${logoId}" not found`);
     }
 
+    // Add logo class for styling
+    this.logo.classList.add('logo');
+
+    // Create unique identifier for CSS variables
+    this.uniqueId = `logo-${logoId}`;
+    this.logo.style.setProperty('--instance-id', this.uniqueId);
+
     // Physics settings
     this.angle = angle * (Math.PI / 180);
     this.traversalDuration = traversalDuration;
@@ -226,20 +233,12 @@ class LogoAnimator2 {
     const distance = Math.sqrt(dx * dx + dy * dy);
     const duration = distance / this.speed; // duration in seconds for constant speed
 
-    document.documentElement.style.setProperty('--start-x', `${startPos.x}px`);
-    document.documentElement.style.setProperty('--start-y', `${startPos.y}px`);
-    document.documentElement.style.setProperty(
-      '--target-x',
-      `${targetPos.x}px`
-    );
-    document.documentElement.style.setProperty(
-      '--target-y',
-      `${targetPos.y}px`
-    );
-    document.documentElement.style.setProperty(
-      '--animation-duration',
-      `${duration}s`
-    );
+    // Set instance-specific CSS variables on the logo element itself
+    this.logo.style.setProperty('--start-x', `${startPos.x}px`);
+    this.logo.style.setProperty('--start-y', `${startPos.y}px`);
+    this.logo.style.setProperty('--target-x', `${targetPos.x}px`);
+    this.logo.style.setProperty('--target-y', `${targetPos.y}px`);
+    this.logo.style.setProperty('--animation-duration', `${duration}s`);
 
     void this.logo.offsetWidth;
     this.logo.classList.add('animate');
