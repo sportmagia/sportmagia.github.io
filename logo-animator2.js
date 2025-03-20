@@ -268,16 +268,10 @@ class LogoAnimator2 {
     const hitBottom = this.currentY + halfHeight >= this.rightEnd();
 
     // Handle wall collisions
-    if (hitLeft || hitRight) {
-      this.velocityX = -this.velocityX;
-      this.angle = Math.PI - this.angle;
-      if (this.angle < 0) this.angle += 2 * Math.PI;
-    }
-
-    if (hitTop || hitBottom) {
-      this.angle = -this.angle;
-      if (this.angle < 0) this.angle += 2 * Math.PI;
-    }
+    if (hitLeft || hitRight) this.angle = Math.PI - this.angle;
+    if (hitTop || hitBottom) this.angle = -this.angle;
+    if (this.angle < 0) this.angle += 2 * Math.PI;
+    this.angle %= 2 * Math.PI;
 
     const hit = hitLeft || hitRight || hitTop || hitBottom;
     if (hit) {
