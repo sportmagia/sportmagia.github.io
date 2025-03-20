@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Physics settings
   const angle = 40 * (Math.PI / 180); // 40 degrees in radians
-  const speed = 200; // Pixels per second - this controls animation duration
+  const speed = 300; // Pixels per second - this controls animation duration
 
   // Velocity components
   let velocityX = Math.cos(angle) * speed;
@@ -160,14 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
     currentX = actualPosition.x;
     currentY = actualPosition.y;
 
-    // Get accurate logo dimensions by measuring the actual rendered element
-    const actualLogoRect = logo.getBoundingClientRect();
-
-    if (isDebugMode) {
-      console.log(
-        `Actual logo position: ${actualLogoRect.left}x${actualLogoRect.top}, size: ${actualLogoRect.width}x${actualLogoRect.height}`
-      );
-    }
+    // Calculate next position based on current velocity
+    let nextX = currentX + velocityX / 60; // Adjust for 60fps
+    let nextY = currentY + velocityY / 60; // Adjust for 60fps
 
     // Calculate collision bounds (where the logo's center point can go)
     // Account for transform: translate(-50%, -50%) in the CSS
@@ -176,77 +171,62 @@ document.addEventListener('DOMContentLoaded', () => {
     const topBound = logoHeight / 2;
     const bottomBound = viewportHeight - logoHeight / 2;
 
-    if (isDebugMode) {
-      console.log(
-        `Bounds: left=${leftBound}, right=${rightBound}, top=${topBound}, bottom=${bottomBound}`
-      );
-      console.log(`Current position: x=${currentX}, y=${currentY}`);
+    // Check for collisions and update velocities
+    const hitLeft = nextX <= leftBound;
+    const hitRight = nextX >= rightBound;
+    const hitTop = nextY <= topBound;
+    const hitBottom = nextY >= bottomBound;
+
+    // Handle horizontal collisions
+    if (hitLeft || hitRight) {
+      velocityX = -velocityX;
+      nextX = hitLeft ? leftBound : rightBound;
     }
 
-    // Calculate the time it would take to hit each wall
-    // Assuming the logo continues in the current direction
-    let timeToHitX = Infinity;
-    let timeToHitY = Infinity;
-    let hitXWall = '';
-    let hitYWall = '';
-
-    if (velocityX > 0) {
-      // Moving right
-      timeToHitX = (rightBound - currentX) / velocityX;
-      hitXWall = 'right';
-    } else if (velocityX < 0) {
-      // Moving left
-      timeToHitX = (leftBound - currentX) / velocityX;
-      hitXWall = 'left';
+    // Handle vertical collisions
+    if (hitTop || hitBottom) {
+      velocityY = -velocityY;
+      nextY = hitTop ? topBound : bottomBound;
     }
 
-    if (velocityY > 0) {
-      // Moving down
-      timeToHitY = (bottomBound - currentY) / velocityY;
-      hitYWall = 'bottom';
-    } else if (velocityY < 0) {
-      // Moving up
-      timeToHitY = (topBound - currentY) / velocityY;
-      hitYWall = 'top';
-    }
-
-    // Determine which wall will be hit first
-    const timeToHit = Math.min(timeToHitX, timeToHitY);
-
-    // Calculate the position where the logo will hit the wall
-    let nextX = currentX + velocityX * timeToHit;
-    let nextY = currentY + velocityY * timeToHit;
-
-    // Ensure we don't go out of bounds
-    nextX = Math.max(leftBound, Math.min(rightBound, nextX));
-    nextY = Math.max(topBound, Math.min(bottomBound, nextY));
-
-    // Determine which wall we'll hit
-    const hitWallX = timeToHitX <= timeToHitY && !!hitXWall;
-    const hitWallY = timeToHitY <= timeToHitX && !!hitYWall;
-
-    // Check if we're hitting a corner (both walls at the same time)
-    const hitCorner =
-      Math.abs(timeToHitX - timeToHitY) < 0.1 && !!hitXWall && !!hitYWall;
-
+    // Check for corner collision (hitting both walls simultaneously)
+    const hitCorner = (hitLeft || hitRight) && (hitTop || hitBottom);
     if (hitCorner) {
       if (isDebugMode) {
-        console.log(`Corner hit detected! ${hitXWall}-${hitYWall}`);
+        console.log(
+          `Corner hit detected! ${hitLeft}-${hitRight}-${hitTop}-${hitBottom}`
+        );
       }
       // Trigger glow effect for corner collisions
       toggleGlow(2000);
-    } else if (isDebugMode && (hitWallX || hitWallY)) {
-      console.log(`Wall hit detected: ${hitWallX ? hitXWall : hitYWall}`);
     }
 
-    // Update velocity for the next segment
-    if (hitWallX || hitCorner) {
-      velocityX = -velocityX; // Reverse x direction
+    if (isDebugMode) {
+      console.log(
+        `Boundaries: L:${leftBound} R:${rightBound} T:${topBound} B:${bottomBound}`
+      );
+      console.log(
+        `Position: Current(${currentX.toFixed(0)},${currentY.toFixed(
+          0
+        )}) Next(${nextX.toFixed(0)},${nextY.toFixed(0)})`
+      );
+      if (hitLeft || hitRight || hitTop || hitBottom) {
+        console.log(
+          `Collision detected: ${[
+            hitLeft && 'left',
+            hitRight && 'right',
+            hitTop && 'top',
+            hitBottom && 'bottom',
+          ]
+            .filter(Boolean)
+            .join(', ')}`
+        );
+      }
     }
 
-    if (hitWallY || hitCorner) {
-      velocityY = -velocityY; // Reverse y direction
-    }
+    // Ensure we stay within bounds
+    nextX = Math.max(leftBound, Math.min(rightBound, nextX));
+    nextY = Math.max(topBound, Math.min(bottomBound, nextY));
 
     // Directly set CSS variables for the animation keyframes
     document.documentElement.style.setProperty('--start-x', `${currentX}px`);
@@ -282,13 +262,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.documentElement.style.getPropertyValue('--start-x');
       logo.style.top =
         document.documentElement.style.getPropertyValue('--start-y');
-
-      // // Temporarily disable animation
+      // Temporarily disable animation
       logo.style.animation = 'none';
-
-      // // Force reflow
+      // Force reflow
       void logo.offsetWidth;
-
       // Remove explicit animation style
       logo.style.animation = '';
     });
